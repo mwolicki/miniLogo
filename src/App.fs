@@ -43,6 +43,17 @@ let gridWidth = float (steps * squareSize)
 // the arrow <- indicates we're mutating a value. It's a special operator in F#.
 myCanvas.width <- gridWidth
 myCanvas.height <- gridWidth
+myCanvas.width <- w * ratio
+myCanvas.height <- h * ratio
+ctx.scale(ratio, ratio)
+
+myCanvas?style?height <- sprintf "%dpx" (int h)
+myCanvas?style?width <- sprintf "%dpx" (int w)
+
+myCanvasBuffer.width <- w * ratio
+myCanvasBuffer.height <- h * ratio
+myCanvasBuffer?style?height <- sprintf "%dpx" (int h)
+myCanvasBuffer?style?width <- sprintf "%dpx" (int w)
 
 // print the grid size to our debugger console
 printfn "%i" steps
@@ -104,12 +115,9 @@ open System
 let radConv = Math.PI / 180.
 
 let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) = 
+
   let ctx = myCanvasBuffer.getContext_2d()
-  myCanvasBuffer.width <- w * ratio
-  myCanvasBuffer.height <- h * ratio
-  myCanvasBuffer?style?height <- sprintf "%dpx" (int h)
-  myCanvasBuffer?style?width <- sprintf "%dpx" (int w)
-  ctx.scale(ratio, ratio)
+
   
   let rec exec env = function 
   | [] -> 
@@ -175,14 +183,9 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
   exec empty expr |> ignore
 
   let mainCtx = myCanvas.getContext_2d()
-  myCanvas?style?height <- sprintf "%dpx" (int h)
-  myCanvas?style?width <- sprintf "%dpx" (int w)
-  myCanvas.width <- w * ratio
-  myCanvas.height <- h * ratio
-  
 
   mainCtx.clearRect(0., 0., myCanvas.width, myCanvas.height)
-  mainCtx.scale(ratio, ratio)
+  
   mainCtx.drawImage(U3.Case2 myCanvasBuffer, 0., 0., w, h)
   
 
