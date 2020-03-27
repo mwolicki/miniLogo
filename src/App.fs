@@ -196,4 +196,4 @@ module P =
   let parse = pWhitespace =>. pAll (pExpr .=> pWhitespace) .=> pEod
 
 myButton.addEventListener("click", fun _ -> 
-  P.parse myCode.value |> Result.map (fst>>exec myCanvas) |> ignore)
+  P.parse (myCode.value |> fun x -> x.ToUpper ()) |> Result.map (fst>>exec myCanvas) |> ignore)
