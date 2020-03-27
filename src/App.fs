@@ -5,7 +5,6 @@ open Fable.Import
 
 
 open Fable.Core
-open Fable.Core.JsInterop
 
 type LZString = 
   abstract compressToBase64 : string -> string
