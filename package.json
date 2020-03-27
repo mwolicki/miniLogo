@@ -4,14 +4,22 @@
     "start": "webpack-dev-server"
   },
   "dependencies": {
-    "@babel/core": "^7.8.7",
-    "fable-compiler": "^2.4.18",
-    "fable-loader": "^2.1.8",
+    "@babel/core": "^7.9.0",
+    "babel-loader": "^8.1.0",
+    "core-js": "^3.6.4",
+    "css-loader": "^3.4.2",
+    "fable-compiler": "^2.4.22",
+    "fable-loader": "^2.1.9",
+    "file-loader": "^6.0.0",
+    "resolve-url-loader": "^3.1.1",
+    "sass-loader": "^8.0.2",
+    "style-loader": "^1.1.3",
     "webpack": "^4.42.0",
     "webpack-cli": "^3.3.11",
     "webpack-dev-server": "^3.10.3"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.9.0",
     "copy-webpack-plugin": "^5.1.1",
     "html-webpack-plugin": "^4.0.2",
     "mini-css-extract-plugin": "^0.9.0",
