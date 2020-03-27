@@ -3,6 +3,18 @@ module App
 open Fable.Core.JsInterop
 open Fable.Import
 
+
+open Fable.Core
+open Fable.Core.JsInterop
+
+type LZString = 
+  abstract compressToBase64 : string -> string
+  abstract decompressFromBase64 : string -> string
+
+[<ImportAll("lz-string")>]
+let LZMA: LZString = jsNative
+
+
 let window = Browser.Dom.window
 
 // Get our canvas context 
@@ -132,10 +144,8 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
           let x = env.X - moveX
           let y = env.Y - moveY
 
-          if env.Pen = Up then
-            ctx.moveTo(x, y)
-          else
-            ctx.lineTo(x, y)
+          if env.Pen = Up then ctx.moveTo(x, y)
+          else ctx.lineTo(x, y)
 
           { env with X = x; Y = y }
 
@@ -147,10 +157,8 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
           let x = env.X + moveX
           let y = env.Y + moveY
           
-          if env.Pen = Up then
-            ctx.moveTo(x, y)
-          else
-            ctx.lineTo(x, y)
+          if env.Pen = Up then ctx.moveTo(x, y)
+          else ctx.lineTo(x, y)
 
           { env with X = x; Y = y }
         | Loop (Num n, expr) -> loop n env expr
@@ -167,6 +175,7 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
   let mainCtx = myCanvas.getContext_2d()
   mainCtx.clearRect(0., 0., myCanvas.width, myCanvas.height)
   mainCtx.drawImage(Fable.Core.U3.Case2 myCanvasBuffer, 0., 0.)
+  
 
 module P =
   open Parser
@@ -195,5 +204,17 @@ module P =
 
   let parse = pWhitespace =>. pAll (pExpr .=> pWhitespace) .=> pEod
 
+
+
 myButton.addEventListener("click", fun _ -> 
-  P.parse (myCode.value |> fun x -> x.ToUpper ()) |> Result.map (fst>>exec myCanvas) |> ignore)
+  let sourceCode = myCode.value |> fun x -> x.ToUpper ()
+  window.location.hash <- LZMA.compressToBase64 sourceCode
+  P.parse sourceCode |> Result.map (fst>>exec myCanvas) |> ignore)
+
+let windHash = window.location.hash
+if isNull windHash |> not && windHash.Length > 1 then
+  let code = windHash.[1..]
+  let code = LZMA.decompressFromBase64 code
+  printf "%A" code
+  myCode.value <- code
+  P.parse code |> Result.map (fst>>exec myCanvas) |> ignore
