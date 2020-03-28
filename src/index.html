@@ -25,8 +25,23 @@
   <main role="main" class="container">
     <div class="container">
       <div class="row">
+        <div class="col-lg float-right">
+        <blockquote class=" text-right small">
+          <p class="mb-2">Spójrzcie na żółwia o ogromnej skorupie! <br/>
+            Co na swych plecach całą Ziemię niesie. <br/>
+            Choć myśli wolno, lecz zawsze rozważnie <br/>
+            I każdego z nas swym umysłem sięgnie.</p>
+          <footer class="blockquote-footer">Stephen King w <cite title="Source Title">Mroczna wieża</cite></footer>
+        </blockquote>
+
+      </div>
+
+      </div>
+
+      <div class="row">
 
         <div class="col-lg">
+          <form>
             <textarea id="code" rows="20" cols="20" class="form-control">
 CS
 NP 100
@@ -37,7 +52,10 @@ NP 100
 PW 90
 NP 100
 PW 90</textarea>
+              <div class="float-right">
             <input type="button" id="go" value="Uruchom" class="btn btn-primary"></button>
+          </div>
+          </form>
           </div>
         <div class="col-sm">
           <canvas id="myCanvas" width="400" height="400"></canvas>
@@ -128,6 +146,9 @@ PW 90</textarea>
     autoCloseBrackets: true,
     matchBrackets : true
   });
+
+  var turtleImage = new Image(16, 16)
+  turtleImage.src = "turtle.png"
 </script>
 
 

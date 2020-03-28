@@ -21,9 +21,9 @@ let window = Browser.Dom.window
 // the unbox keyword allows to make an unsafe cast. Here we assume that getElementById will return an HTMLCanvasElement 
 let mutable myCanvas : Browser.Types.HTMLCanvasElement = unbox window.document.getElementById "myCanvas"  // myCanvas is defined in public/index.html
 let mutable myButton : Browser.Types.HTMLInputElement = unbox window.document.getElementById "go"  // myCanvas is defined in public/index.html
-let mutable myCode : Browser.Types.HTMLTextAreaElement = unbox window.document.getElementById "code"  // myCanvas is defined in public/index.html
 let mutable myResults : Browser.Types.HTMLPreElement = unbox window.document.getElementById "results"  // myCanvas is defined in public/index.html
 let myCanvasBuffer : Browser.Types.HTMLCanvasElement = unbox window.document.createElement "canvas"
+let myCanvasBufferImage : Browser.Types.HTMLCanvasElement = unbox window.document.createElement "canvas"
 
 
 // Get the context
@@ -123,6 +123,18 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
   | [] -> 
     ctx.strokeStyle <- !^"#000" // color
     ctx.stroke()
+    let image:Browser.Types.HTMLImageElement = window?turtleImage
+    let imgCtx = myCanvasBufferImage.getContext_2d()
+    myCanvasBufferImage.width <- 32.
+    myCanvasBufferImage.height <- 32.
+    
+    imgCtx.clearRect(0.,0., 32., 32.)
+    imgCtx.save()
+    imgCtx.translate(16.,16.)
+    imgCtx.rotate (float (180s-env.Angle) * radConv)
+    imgCtx.drawImage(U3.Case1 image,-16.,-16.,32., 32.)
+    imgCtx.restore()
+    ctx.drawImage(U3.Case2 myCanvasBufferImage, env.X - 16.,env.Y - 16., 32., 32.)
     env
   | x::xs -> 
       let env = 
@@ -219,14 +231,16 @@ module P =
 
 
 myButton.addEventListener("click", fun _ -> 
-  let sourceCode = myCode.value |> fun x -> x.ToUpper ()
+  let sourceCode = window?editor?getValue() |> fun (x:string) -> x.ToUpper ()
   window.location.hash <- LZMA.compressToBase64 sourceCode
-  P.parse sourceCode |> Result.map (fst>>exec myCanvas) |> ignore)
+  let r = P.parse sourceCode
+  printfn "result = %A" r
+  r |> Result.map (fst>>exec myCanvas) |> ignore)
 
 let windHash = window.location.hash
 if isNull windHash |> not && windHash.Length > 1 then
   let code = windHash.[1..]
   let code = LZMA.decompressFromBase64 code
   printf "%A" code
-  myCode.value <- code
+  window?editor?setValue code
   P.parse code |> Result.map (fst>>exec myCanvas) |> ignore
