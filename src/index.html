@@ -11,18 +11,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
   <!-- Bootstrap CSS -->
-  
+
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
     integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-    <link rel="stylesheet" href="codemirror.css">
+  <link rel="stylesheet" href="codemirror.css">
   <title>Logo</title>
   <meta http-equiv='Content-Type' content='text/html; charset=utf-8'>
   <link rel="shortcut icon" href="turtle.ico" />
-    
-<script src="codemirror.js"></script>
-<script src="scheme.js"></script>
-<script src="closebrackets.js"></script>
-<script src="matchbrackets.js"></script>
+
+  <script src="codemirror.js"></script>
+  <script src="scheme.js"></script>
+  <script src="closebrackets.js"></script>
+  <script src="matchbrackets.js"></script>
 </head>
 
 <body class="bg-light">
@@ -30,15 +30,15 @@
     <div class="container">
       <div class="row">
         <div class="col-lg float-right">
-        <blockquote class=" text-right small">
-          <p class="mb-2">Spójrzcie na żółwia o ogromnej skorupie! <br/>
-            Co na swych plecach całą Ziemię niesie. <br/>
-            Choć myśli wolno, lecz zawsze rozważnie <br/>
-            I każdego z nas swym umysłem sięgnie.</p>
-          <footer class="blockquote-footer">Stephen King w <cite title="Source Title">Mroczna wieża</cite></footer>
-        </blockquote>
+          <blockquote class=" text-right small">
+            <p class="mb-2">Spójrzcie na żółwia o ogromnej skorupie! <br />
+              Co na swych plecach całą Ziemię niesie. <br />
+              Choć myśli wolno, lecz zawsze rozważnie <br />
+              I każdego z nas swym umysłem sięgnie.</p>
+            <footer class="blockquote-footer">Stephen King w <cite title="Source Title">Mroczna wieża</cite></footer>
+          </blockquote>
 
-      </div>
+        </div>
 
       </div>
 
@@ -56,11 +56,11 @@ NP 100
 PW 90
 NP 100
 PW 90</textarea>
-              <div class="float-right">
-            <input type="button" id="go" value="Uruchom" class="btn btn-primary"></button>
-          </div>
+            <div class="float-right">
+              <input type="button" id="go" value="Uruchom" class="btn btn-primary"></button>
+            </div>
           </form>
-          </div>
+        </div>
         <div class="col-sm">
           <canvas id="myCanvas" width="400" height="400"></canvas>
 
@@ -117,6 +117,61 @@ PW 90</textarea>
                   <td>OPU</td>
                   <td>Opuszcza pisak żółwia.</td>
                 </tr>
+                <tr>
+                  <td>SCHOWAJMNIE</td>
+                  <td>SŻ</td>
+                  <td>Ukrywa żółwia.</td>
+                </tr>
+                <tr>
+                  <td>POKAŻMNIE</td>
+                  <td>PŻ</td>
+                  <td>Pokazuje żółwia.</td>
+                </tr>
+                <tr>
+                  <td>POWTÓRZ <i>liczba powtórzeń [lista poleceń]</i></td>
+                  <td></td>
+                  <td>Powtarza listę poleceń podaną liczbę razy.</td>
+                </tr>
+                <tr>
+                  <td>KOŁO <i>średnica</i></td>
+                  <td></td>
+                  <td>Rysuje koło o podanej średnicy.</td>
+                </tr>
+                <tr>
+                  <td>OKRĄG <i>średnica</i></td>
+                  <td></td>
+                  <td>Rysuje okrąg o podanej średnicy.</td>
+                </tr>
+                <tr>
+                  <td>CZYŚĆ</td>
+                  <td>CZ</td>
+                  <td>Czyści ekran.</td>
+                </tr>
+                <tr>
+                  <td>CZEKAJ <i>liczba milisekund</i></td>
+                  <td></td>
+                  <td>Zatrzymuje wykonanie programu na podaną liczbę milisekund (1 sekunda to 1000 milisekund).</td>
+                </tr>
+                <tr>
+                  <td>USTALGRUBOŚĆ <i>grubość pisaka</i></td>
+                  <td>UGP <i>grubość pisaka</i></td>
+                  <td>Ustala grubość pisaka.</td>
+                </tr>
+                <tr>
+                  <td>USTALKOLPIS <i>kolor pisaka</i></td>
+                  <td>UKP <i>kolor pisaka</i></td>
+                  <td>Ustala kolor pisaka.</td>
+                </tr>
+                <tr>
+                  <td>USTALKOLMAL <i>kolor malowania</i></td>
+                  <td>UKP <i>kolor malowania</i></td>
+                  <td>Ustala kolor malowania.</td>
+                </tr>
+                <tr>
+                  <td>ZAMALUJ</td>
+                  <td></td>
+                  <td>Zamalowuje obszar.</td>
+                </tr>
               </tbody>
             </table>
 
@@ -144,13 +199,13 @@ PW 90</textarea>
   </main>
 
 
-<script>
-  var editor = CodeMirror.fromTextArea(document.getElementById("code"), {
-    lineNumbers: true,
-    autoCloseBrackets: true,
-    matchBrackets : true
-  });
-</script>
+  <script>
+    var editor = CodeMirror.fromTextArea(document.getElementById("code"), {
+      lineNumbers: true,
+      autoCloseBrackets: true,
+      matchBrackets: true
+    });
+  </script>
 
 
   <script src="bundle.js"></script>

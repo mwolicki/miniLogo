@@ -217,16 +217,23 @@ module P =
   let pExpr = 
     let pExpr, pExprSetter = pRef ()
     pAny [
+      pStr "PODNIEŚ" --> PenUp
       pStr "POD" --> PenUp
+      pStr "OPUŚĆ" --> PenDown
       pStr "OPU" --> PenDown
       pStr "ŚĆIER" --> PenErase
+      pStr "POKAŻMNIE" --> ShowTurtle
       pStr "PŻ" --> ShowTurtle
+      pStr "SCHOWAJMNIE" --> HideTurtle
       pStr "SŻ" --> HideTurtle
       pStr "CS" --> CleanScreen
+      pStr "NAPRZÓD" .=> pWhitespace =>. pUint16 ==> Forward
       pStr "NP" .=> pWhitespace =>. pUint16 ==> Forward
+      pStr "PRAWO" .=> pWhitespace =>. pUint16 ==> Right
       pStr "PW" .=> pWhitespace =>. pUint16 ==> Right
+      pStr "LEWO" .=> pWhitespace =>. pUint16 ==> Left
       pStr "LW" .=> pWhitespace =>. pUint16 ==> Left
-      pStr "POWTÓRZ" .=> pWhitespace1 =>. pUint16 .=> pWhitespace .=>  pChar '[' .=>. pAll (pExpr .=> pWhitespace) .=> pChar ']' ==> Loop 
+      pStr "POWTÓRZ" .=> pWhitespace1 =>. pUint16 .=> pWhitespace .=>  pChar '[' .=> pWhitespace .=>. pAll (pExpr .=> pWhitespace) .=> pChar ']' ==> Loop 
       pStr "OTO" .=> pWhitespace1 =>. pRegEx "\w+" .=> pWhitespace1 .=>.  pAll (pChar ':' =>. pRegEx "\w+" .=> pWhitespace) .=>. pAll (pExpr .=> pWhitespace) .=> pStr "JUŻ" 
         ==> fun ((name, args), code) -> {Name = name; Args = args; Code = code } |> Procedure
       ] |> pExprSetter
