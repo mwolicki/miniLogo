@@ -186,7 +186,7 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
 
   mainCtx.clearRect(0., 0., myCanvas.width, myCanvas.height)
   
-  mainCtx.drawImage(U3.Case2 myCanvasBuffer, 0., 0., w, h)
+  mainCtx.drawImage(U3.Case2 myCanvasBuffer, 0., 0., w * ratio, h  * ratio,  0., 0., w, h)
   
 
 module P =
@@ -207,8 +207,8 @@ module P =
       pStr "NP" .=> pWhitespace =>. pUint16 ==> Forward
       pStr "PW" .=> pWhitespace =>. pUint16 ==> Right
       pStr "LW" .=> pWhitespace =>. pUint16 ==> Left
-      pStr "POWTORZ" .=> pWhitespace1 =>. pUint16 .=> pWhitespace .=>  pChar '[' .=>. pAll (pExpr .=> pWhitespace) .=> pChar ']' ==> Loop 
-      pStr "OTO" .=> pWhitespace1 =>. pRegEx "\w+" .=> pWhitespace1 .=>.  pAll (pChar ':' =>. pRegEx "\w+" .=> pWhitespace) .=>. pAll (pExpr .=> pWhitespace) .=> pStr "JUZ" 
+      pStr "POWTÓRZ" .=> pWhitespace1 =>. pUint16 .=> pWhitespace .=>  pChar '[' .=>. pAll (pExpr .=> pWhitespace) .=> pChar ']' ==> Loop 
+      pStr "OTO" .=> pWhitespace1 =>. pRegEx "\w+" .=> pWhitespace1 .=>.  pAll (pChar ':' =>. pRegEx "\w+" .=> pWhitespace) .=>. pAll (pExpr .=> pWhitespace) .=> pStr "JUŻ" 
         ==> fun ((name, args), code) -> {Name = name; Args = args; Code = code } |> Procedure
       ] |> pExprSetter
 
