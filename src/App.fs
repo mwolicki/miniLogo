@@ -114,6 +114,22 @@ open System
 
 let radConv = Math.PI / 180.
 
+let drawTurtle env =
+    let ctx = myCanvasBuffer.getContext_2d()
+    let image:Browser.Types.HTMLImageElement = window?turtleImage
+    
+    myCanvasBufferImage.width <- 32.
+    myCanvasBufferImage.height <- 32.
+    
+    let imgCtx = myCanvasBufferImage.getContext_2d()
+    imgCtx.clearRect(0.,0., 32., 32.)
+    imgCtx.save()
+    imgCtx.translate(16.,16.)
+    imgCtx.rotate (float (180s-env.Angle) * radConv)
+    imgCtx.drawImage(U3.Case1 image,-16.,-16.,32., 32.)
+    imgCtx.restore()
+    ctx.drawImage(U3.Case2 myCanvasBufferImage, env.X - 16.,env.Y - 16., 32., 32.)
+
 let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) = 
 
   let ctx = myCanvasBuffer.getContext_2d()
@@ -123,18 +139,6 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
   | [] -> 
     ctx.strokeStyle <- !^"#000" // color
     ctx.stroke()
-    let image:Browser.Types.HTMLImageElement = window?turtleImage
-    let imgCtx = myCanvasBufferImage.getContext_2d()
-    myCanvasBufferImage.width <- 32.
-    myCanvasBufferImage.height <- 32.
-    
-    imgCtx.clearRect(0.,0., 32., 32.)
-    imgCtx.save()
-    imgCtx.translate(16.,16.)
-    imgCtx.rotate (float (180s-env.Angle) * radConv)
-    imgCtx.drawImage(U3.Case1 image,-16.,-16.,32., 32.)
-    imgCtx.restore()
-    ctx.drawImage(U3.Case2 myCanvasBufferImage, env.X - 16.,env.Y - 16., 32., 32.)
     env
   | x::xs -> 
       let env = 
@@ -192,7 +196,10 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
       loop (n - 1us) env expr
       
   
-  exec empty expr |> ignore
+  let env = exec empty expr
+
+  if env.IsVisible then
+    drawTurtle env
 
   let mainCtx = myCanvas.getContext_2d()
 
