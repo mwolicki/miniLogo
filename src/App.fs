@@ -142,117 +142,166 @@ let drawTurtle env =
     imgCtx.restore()
     ctx.drawImage(U3.Case2 myCanvasBufferImage, env.X - 16.,env.Y - 16., 32., 32.)
 
+let inline drawContext (ctx:Browser.Types.CanvasRenderingContext2D) env  f =
+    ctx.beginPath ()
+    ctx.lineWidth <- float env.PenSize
+    ctx.fillStyle <- U3.Case1 env.BackgroudColor.Name
+    ctx.strokeStyle <- U3.Case1 env.PenColor.Name
+    f ctx
+    ctx.stroke ()
+    ctx.closePath ()
+
+type Async<'a> =
+  static member Singleton x = async { return x }
 
 
-let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) = 
+let fill x y width (arr:uint8 []) r g b =
+  let pos x y = (y * width + x) * 4
+  let r', g', b', a' = arr.[pos x y], arr.[pos x y + 1], arr.[pos x y + 2], arr.[pos x y + 3]
+  printfn "%A" (r', g', b', a')
+  
+  let pixels = ResizeArray()
+  let pixelsVisited = System.Collections.Generic.HashSet()
+
+  pixels.Add((x,y)) |> ignore
+  pixelsVisited.Add((x,y)) |> ignore
+  let mutable i = 0
+  while i < pixels.Count do
+    let x, y = pixels.[i] 
+    let pos = pos x y
+    i <- i + 1
+    if pos > arr.Length then ()
+    elif arr.[pos] = r' && arr.[pos + 1] = g' && arr.[pos + 2] = b' && arr.[pos + 3] = a' then
+      arr.[pos] <- r
+      arr.[pos + 1] <- g
+      arr.[pos + 2] <- b
+      arr.[pos + 3] <- 255uy
+      for x' in -1 .. 1 do
+        for y' in -1 .. 1 do
+          if pixelsVisited.Add((x + x', y + y')) then
+            pixels.Add((x + x', y + y'))
+  pixels.Clear ()
+      
+
+
+let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
 
   let ctx = myCanvasBuffer.getContext_2d()
 
   
-  let rec exec env = function 
-  | [] -> 
-    ctx.stroke()
-    ctx.closePath()
-    env
-  | x::xs -> 
-      printfn "%A" x
-      let env = 
-        match x with
-        | BackgroudColor color -> { env with BackgroudColor = color }
-        | PenColor color -> 
-          ctx.strokeStyle <- U3.Case1 color.Name
-          { env with PenColor = color }
-        | PenSize (Num size) -> 
-          ctx.lineWidth <- float size
-          { env with PenSize = size }
-        | Sleep _ -> env //TODO: impl
-        | ColorFill -> env //TODO: impl
-        | ProcedureCall (name, args) -> env //TODO: impl
-        | Circle (Num radius) ->
-          ctx.stroke()
-          ctx.beginPath ()
-          ctx.arc (float env.X, float env.Y, float radius, 0., 2. * Math.PI)
-          ctx.closePath()
-          ctx.moveTo(float env.X, float env.Y)
-          env
-        | Disk (Num radius) ->
-          ctx.stroke()
-          ctx.beginPath ()
-          ctx.arc (float env.X, float env.Y, float radius, 0., 2. * Math.PI)
-          
-          ctx.fillStyle <- U3.Case1 env.BackgroudColor.Name
-          ctx.fill()
-          ctx.stroke()
-          ctx.closePath()
-          ctx.beginPath ()
+  let rec exec (env:Env) xs = async {
+    match xs with 
+    | [] -> 
+      ctx.stroke()
+      ctx.closePath()
+      return env
+    | x::xs -> 
+        let! env= 
+          match x with
+          | BackgroudColor color -> { env with BackgroudColor = color } |> Async.Singleton
+          | PenColor color -> { env with PenColor = color }  |> Async.Singleton
+          | PenSize (Num size) -> { env with PenSize = size }  |> Async.Singleton
+          | Sleep (Num sleep) -> 
+            if env.IsVisible then drawTurtle env
 
-          ctx.moveTo(float env.X, float env.Y)
-          env
-        | PenUp -> { env with Pen = Up }
-        | PenDown -> { env with Pen = Down }
-        | PenErase -> { env with Pen = Erase }
-        | HideTurtle -> { env with IsVisible = false }
-        | ShowTurtle -> { env with IsVisible = true }
-        | CleanScreen -> 
-          let x = myCanvas.width / 2.
-          let y = myCanvas.height / 2.
-          ctx.beginPath()
-          ctx.moveTo(x, y)
-          ctx.lineWidth <- 1.
-          ctx.strokeStyle <- U3.Case1 Black.Name
-          
-          //ctx.save()
-          //ctx.setTransform(1., 0., 0., 1., 0., 0.)
-          ctx.clearRect(0., 0., myCanvas.width, myCanvas.height)
-          //ctx.restore()
-          { empty with X = x; Y = y }
-        | Procedure p -> { env with Procedures = Map.add p.Name p env.Procedures }
-        | Left (Num angle) -> { env with Angle = (env.Angle + int16 angle) % 360s }
-        | Right (Num angle) -> { env with Angle = (env.Angle - int16 angle) % 360s }
-        | Back (Num steps) -> 
-          let steps = float steps
-          let angleRadian = radConv * float env.Angle
-          let moveY  = steps * (cos angleRadian)
-          let moveX  = steps * (sin angleRadian)
-          let x = env.X - moveX
-          let y = env.Y - moveY
+            let mainCtx = myCanvas.getContext_2d()
 
-          if env.Pen = Up then ctx.moveTo(x, y)
-          else ctx.lineTo(x, y)
+            mainCtx.clearRect(0., 0., myCanvas.width, myCanvas.height)
+            
+            mainCtx.drawImage(U3.Case2 myCanvasBuffer, 0., 0., w * ratio, h  * ratio,  0., 0., w, h)
+            async {
+              do! Async.Sleep (int sleep)
+              return env }
+          | ColorFill -> 
+            ctx.stroke()
+            let id = ctx.getImageData(0., 0.,  myCanvas.width,  myCanvas.height)
+            fill (int env.X) (int env.Y) (int id.width) id.data 255uy 0uy 0uy
+            ctx.putImageData (id, 0., 0.)
+            env  |> Async.Singleton//TODO: impl
+          | ProcedureCall (name, args) -> env  |> Async.Singleton//TODO: impl
+          | Circle (Num radius) ->
+            drawContext ctx env (fun ctx ->
+              ctx.arc (float env.X, float env.Y, float radius, 0., 2. * Math.PI)
+              ctx.moveTo(float env.X, float env.Y))
+            env |> Async.Singleton
+          | Disk (Num radius) ->
+            drawContext ctx env (fun ctx ->
+              ctx.arc (float env.X, float env.Y, float radius, 0., 2. * Math.PI)
+              ctx.fillStyle <- U3.Case1 env.BackgroudColor.Name
+              ctx.fill()
+              ctx.moveTo(float env.X, float env.Y))
+            env |> Async.Singleton
+          | PenUp -> { env with Pen = Up } |> Async.Singleton
+          | PenDown -> { env with Pen = Down } |> Async.Singleton
+          | PenErase -> { env with Pen = Erase } |> Async.Singleton
+          | HideTurtle -> { env with IsVisible = false } |> Async.Singleton
+          | ShowTurtle -> { env with IsVisible = true } |> Async.Singleton
+          | CleanScreen -> 
+            let x = myCanvas.width / 2.
+            let y = myCanvas.height / 2.
+            ctx.beginPath()
+            ctx.moveTo(x, y)
+            ctx.clearRect(0., 0., myCanvas.width, myCanvas.height)
+            { empty with X = x; Y = y } |> Async.Singleton
+          | Procedure p -> { env with Procedures = Map.add p.Name p env.Procedures } |> Async.Singleton
+          | Left (Num angle) -> { env with Angle = (env.Angle + int16 angle) % 360s } |> Async.Singleton
+          | Right (Num angle) -> { env with Angle = (env.Angle - int16 angle) % 360s } |> Async.Singleton
+          | Back (Num steps) -> 
+            let steps = float steps
+            let angleRadian = radConv * float env.Angle
+            let moveY  = steps * (cos angleRadian)
+            let moveX  = steps * (sin angleRadian)
+            let x = env.X - moveX
+            let y = env.Y - moveY
 
-          { env with X = x; Y = y }
+            if env.Pen = Up then ctx.moveTo(x, y)
+            else 
+              drawContext ctx env (fun ctx ->
+                ctx.moveTo(float env.X, float env.Y)
+                ctx.lineTo(x, y))
 
-        | Forward (Num steps) -> 
-          let steps = float steps
-          let angleRadian = radConv * float env.Angle
-          let moveY  = steps * (cos angleRadian)
-          let moveX  = steps * (sin angleRadian)
-          let x = env.X + moveX
-          let y = env.Y + moveY
-          
-          if env.Pen = Up then ctx.moveTo(x, y)
-          else ctx.lineTo(x, y)
+            { env with X = x; Y = y } |> Async.Singleton
 
-          { env with X = x; Y = y }
-        | Loop (Num n, expr) -> loop n env expr
-      exec env xs      
-  and loop n env expr =
-    if n <= 0us then env
+          | Forward (Num steps) -> 
+            let steps = float steps
+            let angleRadian = radConv * float env.Angle
+            let moveY  = steps * (cos angleRadian)
+            let moveX  = steps * (sin angleRadian)
+            let x = env.X + moveX
+            let y = env.Y + moveY
+            
+            if env.Pen = Up then ctx.moveTo(x, y)
+            else 
+              drawContext ctx env (fun ctx ->
+                ctx.moveTo(float env.X, float env.Y)
+                ctx.lineTo(x, y))
+
+            { env with X = x; Y = y } |> Async.Singleton
+          | Loop (Num n, expr) -> loop n env expr
+        return! exec env xs }
+  and loop n (env:Env) expr = async {
+    if n <= 0us then return env
     else 
-      let env = exec env expr
-      loop (n - 1us) env expr
+      let! env = exec env expr
+      return! loop (n - 1us) env expr }
       
-  
-  let env = exec empty (CleanScreen :: expr)
+  async {
+    try
+      try
+        myButton.disabled <- true
+        let! env = exec empty (CleanScreen :: expr)
 
-  if env.IsVisible then
-    drawTurtle env
+        if env.IsVisible then drawTurtle env
 
-  let mainCtx = myCanvas.getContext_2d()
+        let mainCtx = myCanvas.getContext_2d()
 
-  mainCtx.clearRect(0., 0., myCanvas.width, myCanvas.height)
-  
-  mainCtx.drawImage(U3.Case2 myCanvasBuffer, 0., 0., w * ratio, h  * ratio,  0., 0., w, h)
+        mainCtx.clearRect(0., 0., myCanvas.width, myCanvas.height)
+        
+        mainCtx.drawImage(U3.Case2 myCanvasBuffer, 0., 0., w * ratio, h  * ratio,  0., 0., w, h)
+      finally
+        myButton.disabled <- false
+    with e ->
+      eprintfn "An exception %A occured when processing %A" e expr } |> Async.Start
   
 
 module P =
@@ -285,7 +334,6 @@ module P =
       pStr "POD" --> PenUp
       pStr "OPUŚĆ" --> PenDown
       pStr "OPU" --> PenDown
-      pStr "ŚĆIER" --> PenErase
       pStr "POKAŻMNIE" --> ShowTurtle
       pStr "PŻ" --> ShowTurtle
       pStr "SCHOWAJMNIE" --> HideTurtle
