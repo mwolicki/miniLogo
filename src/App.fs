@@ -75,14 +75,18 @@ ctx.stroke()
 // write Fable
 ctx.textAlign <- "center"
 
-printfn "done!"
-
-
-
 type NumberExpr =
 | Num of uint16
 | Add of NumberExpr * NumberExpr
 | Sub of NumberExpr * NumberExpr
+
+
+type Color = Green | Black | Blue | Yellow | Gray | Red | White
+with 
+  member x.Name = 
+    match x with
+    | Green -> "green" | Black -> "black" |  Blue -> "blue" | Yellow -> "yellow"  | Gray -> "gray"
+    | Red -> "red" | White -> "white"
 
 type Expr = 
 | PenUp
@@ -91,6 +95,14 @@ type Expr =
 | HideTurtle
 | ShowTurtle
 | CleanScreen
+| ColorFill
+| Sleep of milisec : NumberExpr
+| ProcedureCall of name : string * NumberExpr list
+| BackgroudColor of name : Color
+| PenColor of name : Color
+| PenSize of size : NumberExpr
+| Disk of radius : NumberExpr
+| Circle of radius : NumberExpr
 | Forward of steps : NumberExpr
 | Back of steps : NumberExpr
 | Right of angle : NumberExpr
@@ -100,8 +112,8 @@ type Expr =
 and ProcedureDef = { Name:string; Args:string list; Code:Expr list }
 
 type PenState = Up | Down | Erase
-type Env = { X : float; Y : float; Pen : PenState; IsVisible : bool; Procedures : Map<string, ProcedureDef>; Angle : int16 }
-let empty = { X = 0.; Y = 0.; Pen = Down; IsVisible = true; Procedures = Map.empty; Angle = 180s }
+type Env = { X : float; Y : float; Pen : PenState; IsVisible : bool; Procedures : Map<string, ProcedureDef>; Angle : int16; BackgroudColor : Color; PenColor : Color; PenSize : uint16 }
+let empty = { X = 0.; Y = 0.; Pen = Down; IsVisible = true; Procedures = Map.empty; Angle = 180s; BackgroudColor = White; PenColor = Black; PenSize = 2us }
 
 let rec numExpr = function
   | Add (a, b) -> (numExpr a) + (numExpr b)
@@ -130,6 +142,8 @@ let drawTurtle env =
     imgCtx.restore()
     ctx.drawImage(U3.Case2 myCanvasBufferImage, env.X - 16.,env.Y - 16., 32., 32.)
 
+
+
 let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) = 
 
   let ctx = myCanvasBuffer.getContext_2d()
@@ -137,12 +151,43 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
   
   let rec exec env = function 
   | [] -> 
-    ctx.strokeStyle <- !^"#000" // color
     ctx.stroke()
+    ctx.closePath()
     env
   | x::xs -> 
+      printfn "%A" x
       let env = 
         match x with
+        | BackgroudColor color -> { env with BackgroudColor = color }
+        | PenColor color -> 
+          ctx.strokeStyle <- U3.Case1 color.Name
+          { env with PenColor = color }
+        | PenSize (Num size) -> 
+          ctx.lineWidth <- float size
+          { env with PenSize = size }
+        | Sleep _ -> env //TODO: impl
+        | ColorFill -> env //TODO: impl
+        | ProcedureCall (name, args) -> env //TODO: impl
+        | Circle (Num radius) ->
+          ctx.stroke()
+          ctx.beginPath ()
+          ctx.arc (float env.X, float env.Y, float radius, 0., 2. * Math.PI)
+          ctx.closePath()
+          ctx.moveTo(float env.X, float env.Y)
+          env
+        | Disk (Num radius) ->
+          ctx.stroke()
+          ctx.beginPath ()
+          ctx.arc (float env.X, float env.Y, float radius, 0., 2. * Math.PI)
+          
+          ctx.fillStyle <- U3.Case1 env.BackgroudColor.Name
+          ctx.fill()
+          ctx.stroke()
+          ctx.closePath()
+          ctx.beginPath ()
+
+          ctx.moveTo(float env.X, float env.Y)
+          env
         | PenUp -> { env with Pen = Up }
         | PenDown -> { env with Pen = Down }
         | PenErase -> { env with Pen = Erase }
@@ -153,6 +198,8 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
           let y = myCanvas.height / 2.
           ctx.beginPath()
           ctx.moveTo(x, y)
+          ctx.lineWidth <- 1.
+          ctx.strokeStyle <- U3.Case1 Black.Name
           
           //ctx.save()
           //ctx.setTransform(1., 0., 0., 1., 0., 0.)
@@ -196,7 +243,7 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
       loop (n - 1us) env expr
       
   
-  let env = exec empty expr
+  let env = exec empty (CleanScreen :: expr)
 
   if env.IsVisible then
     drawTurtle env
@@ -213,10 +260,27 @@ module P =
 
   let pUint16 = pUint16 ==> Num
 
+  let pColor = 
+    pChar '"' =>. pAny [
+      pStr "NIEBIESKI" --> Blue
+      pStr "ZIELONY" --> Green
+      pStr "SZARY" --> Gray
+      pStr "CZARNY" --> Black
+      pStr "ŻÓŁTY" --> Yellow
+      pStr "BIAŁY" --> White
+      pStr "CZERWONY" --> Red ]
 
   let pExpr = 
     let pExpr, pExprSetter = pRef ()
     pAny [
+      pStr "NAPRZÓD" .=> pWhitespace =>. pUint16 ==> Forward
+      pStr "NP" .=> pWhitespace =>. pUint16 ==> Forward
+      pStr "PRAWO" .=> pWhitespace =>. pUint16 ==> Right
+      pStr "PW" .=> pWhitespace =>. pUint16 ==> Right
+      pStr "LEWO" .=> pWhitespace =>. pUint16 ==> Left
+      pStr "LW" .=> pWhitespace =>. pUint16 ==> Left
+      pStr "CS" --> CleanScreen
+      pStr "POWTÓRZ" .=> pWhitespace1 =>. pUint16 .=> pWhitespace .=>  pChar '[' .=> pWhitespace .=>. pAll (pExpr .=> pWhitespace) .=> pChar ']' ==> Loop 
       pStr "PODNIEŚ" --> PenUp
       pStr "POD" --> PenUp
       pStr "OPUŚĆ" --> PenDown
@@ -226,14 +290,16 @@ module P =
       pStr "PŻ" --> ShowTurtle
       pStr "SCHOWAJMNIE" --> HideTurtle
       pStr "SŻ" --> HideTurtle
-      pStr "CS" --> CleanScreen
-      pStr "NAPRZÓD" .=> pWhitespace =>. pUint16 ==> Forward
-      pStr "NP" .=> pWhitespace =>. pUint16 ==> Forward
-      pStr "PRAWO" .=> pWhitespace =>. pUint16 ==> Right
-      pStr "PW" .=> pWhitespace =>. pUint16 ==> Right
-      pStr "LEWO" .=> pWhitespace =>. pUint16 ==> Left
-      pStr "LW" .=> pWhitespace =>. pUint16 ==> Left
-      pStr "POWTÓRZ" .=> pWhitespace1 =>. pUint16 .=> pWhitespace .=>  pChar '[' .=> pWhitespace .=>. pAll (pExpr .=> pWhitespace) .=> pChar ']' ==> Loop 
+      pStr "CZEKAJ" .=> pWhitespace1 =>. pUint16 ==> Sleep
+      pStr "KOŁO" .=> pWhitespace1 =>. pUint16 ==> Disk
+      pStr "OKRĄG" .=> pWhitespace1 =>. pUint16 ==> Circle
+      pStr "USTALGRUBOŚĆ" .=> pWhitespace1 =>. pUint16 ==> PenSize
+      pStr "UGP" .=> pWhitespace1 =>. pUint16 ==> PenSize
+      pStr "USTALKOLPIS" .=> pWhitespace1 =>. pColor ==> PenColor
+      pStr "UKP" .=> pWhitespace1 =>. pColor ==> PenColor
+      pStr "USTALKOLMAL" .=> pWhitespace1 =>. pColor ==> BackgroudColor
+      pStr "UKM" .=> pWhitespace1 =>. pColor ==> BackgroudColor
+      pStr "ZAMALUJ" --> ColorFill
       pStr "OTO" .=> pWhitespace1 =>. pRegEx "\w+" .=> pWhitespace1 .=>.  pAll (pChar ':' =>. pRegEx "\w+" .=> pWhitespace) .=>. pAll (pExpr .=> pWhitespace) .=> pStr "JUŻ" 
         ==> fun ((name, args), code) -> {Name = name; Args = args; Code = code } |> Procedure
       ] |> pExprSetter

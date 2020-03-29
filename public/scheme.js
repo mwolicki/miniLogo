@@ -129,11 +129,7 @@ CodeMirror.defineMode("scheme", function () {
                 default: // default parsing mode
                     var ch = stream.next();
 
-                    if (ch == "\"") {
-                        state.mode = "string";
-                        returnType = STRING;
-
-                    } else if (ch == "'") {
+                    if (ch == "'") {
                         if (stream.peek() == "(" || stream.peek() == "["){
                             if (typeof state.sExprQuote != "number") {
                                 state.sExprQuote = 0;
