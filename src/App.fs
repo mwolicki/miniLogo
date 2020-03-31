@@ -246,6 +246,7 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
             drawContext ctx env (fun ctx ->
               ctx.arc (float env.X, float env.Y, float radius, 0., 2. * Math.PI)
               ctx.fillStyle <- U3.Case1 env.BackgroudColor.Name
+              ctx.strokeStyle <- U3.Case1 env.BackgroudColor.Name
               ctx.fill()
               ctx.moveTo(float env.X, float env.Y))
             env |> Async.Singleton
