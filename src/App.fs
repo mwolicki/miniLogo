@@ -377,7 +377,7 @@ module P =
       pStr "OTO" .=> pWhitespace1 =>. pRegEx "\w+" .=> pWhitespace1 .=>.  pAll (pChar ':' =>. pRegEx "\w+" .=> pWhitespace) .=>. pAll (pExpr .=> pWhitespace) .=> pStr "JUŻ" 
         ==> fun ((name, args), code) -> {Name = name; Args = args; Code = code } |> Procedure
       //needs to be the last one
-      pProcedureNameCall .=> pWhitespace .=>. pAll (pNum .=> pWhitespace) ==> ProcedureCall
+      pProcedureNameCall .=> pWhitespace1 .=>. pAll (pNum .=> pWhitespace) ==> ProcedureCall
       ] |> pExprSetter
 
     pExpr
