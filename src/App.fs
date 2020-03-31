@@ -82,10 +82,13 @@ type NumberExpr =
 
 type Color = Green | Black | Blue | Yellow | Gray | Red | White
 with 
-  member x.Name = 
+  member x.Rgb = 
     match x with
-    | Green -> "green" | Black -> "black" |  Blue -> "blue" | Yellow -> "yellow"  | Gray -> "gray"
-    | Red -> "red" | White -> "white"
+    | Green -> 0uy,255uy,0uy | Black -> 0uy,0uy,0uy |  Blue -> 0uy,0uy,255uy | Yellow -> 255uy,255uy,0uy  | Gray -> 220uy,220uy,220uy
+    | Red -> 255uy,0uy,0uy | White -> 255uy,255uy,255uy
+  member x.Name = 
+    let (r,g,b) = x.Rgb
+    sprintf "rgb(%d,%d,%d)" r g b
 
 type Expr = 
 | PenUp
@@ -161,6 +164,21 @@ let inline drawContext (ctx:Browser.Types.CanvasRenderingContext2D) env  f =
     ctx.stroke ()
     ctx.closePath ()
 
+type Stack = { arr : (int*int) ResizeArray }
+with 
+  member a.IsEmpty () = a.arr.Count = 0
+  member a.Dequeue () =
+    let count = a.arr.Count
+    if count > 0 then
+      let x = a.arr.[count - 1]
+      a.arr.RemoveAt (count - 1)
+      x
+    else failwithf "Queue is empty"
+  member a.Enqueue value = 
+    a.arr.Add value |> ignore
+      
+  static member empty = { arr = ResizeArray () }
+
 type Async<'a> =
   static member Singleton x = async { return x }
 
@@ -168,26 +186,28 @@ type Async<'a> =
 let fill x y width (arr:uint8 []) r g b =
   let pos x y = (y * width + x) * 4
   let r', g', b', a' = arr.[pos x y], arr.[pos x y + 1], arr.[pos x y + 2], arr.[pos x y + 3]
-  printfn "%A" (r', g', b', a')
+  let pixels = Stack.empty
   
-  let pixels = ResizeArray()
+  pixels.Enqueue((x,y)) |> ignore
+  
+  while pixels.IsEmpty () |> not do
+    let x, y = pixels.Dequeue ()
 
-  pixels.Add((x,y)) |> ignore
-  let mutable i = 0
-  while i < pixels.Count do
-    let x, y = pixels.[i] 
     let pos = pos x y
-    i <- i + 1
-    if pos > arr.Length then ()
-    elif arr.[pos] = r' && arr.[pos + 1] = g' && arr.[pos + 2] = b' && arr.[pos + 3] = a' then
+    if pos > arr.Length || pos < 0 then ()
+    elif arr.[pos] = r && arr.[pos + 1] = g && arr.[pos + 2] = b && arr.[pos + 3] = 255uy then ()
+    elif (arr.[pos] = r' && arr.[pos + 1] = g' && arr.[pos + 2] = b' && arr.[pos + 3] = a')
+      || abs(int arr.[pos] - int r') + abs(int arr.[pos + 1] - int g') + abs(int arr.[pos + 2] - int b') + abs(int arr.[pos + 3] - int a') < 75 then
       arr.[pos] <- r
       arr.[pos + 1] <- g
       arr.[pos + 2] <- b
       arr.[pos + 3] <- 255uy
+
       for x' in -1 .. 1 do
+        let x' = x + x'
         for y' in -1 .. 1 do
-          pixels.Add((x + x', y + y'))
-  pixels.Clear ()
+          let y' = y + y'
+          if x' <> x || y' <> y then pixels.Enqueue((x', y'))
       
 
 
@@ -224,7 +244,8 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
           | ColorFill -> 
             ctx.stroke()
             let id = ctx.getImageData(0., 0.,  myCanvas.width,  myCanvas.height)
-            fill (int env.X) (int env.Y) (int id.width) id.data 255uy 0uy 0uy
+            let (r,g,b) = env.BackgroudColor.Rgb
+            fill (int env.X) (int env.Y) (int id.width) id.data r g b
             ctx.putImageData (id, 0., 0.)
             env  |> Async.Singleton
           | ProcedureCall (name, args) -> 
@@ -319,7 +340,7 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
       finally
         myButton.disabled <- false
     with e ->
-      eprintfn "An exception %A occured when processing %A" e expr } |> Async.Start
+      eprintfn "An exception %O occured when processing %A" e expr } |> Async.Start
   
 
 module P =
