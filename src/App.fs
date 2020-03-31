@@ -179,7 +179,7 @@ let fill x y width (arr:uint8 []) r g b =
     let pos = pos x y
     i <- i + 1
     if pos > arr.Length then ()
-    elif arr.[pos] = r' && arr.[pos + 1] = g' && arr.[pos + 2] = b' && arr.[pos + 3] = a' || arr.[pos + 3]  = 0uy then
+    elif arr.[pos] = r' && arr.[pos + 1] = g' && arr.[pos + 2] = b' && arr.[pos + 3] = a' then
       arr.[pos] <- r
       arr.[pos + 1] <- g
       arr.[pos + 2] <- b
