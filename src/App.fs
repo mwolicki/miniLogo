@@ -171,10 +171,8 @@ let fill x y width (arr:uint8 []) r g b =
   printfn "%A" (r', g', b', a')
   
   let pixels = ResizeArray()
-  let pixelsVisited = System.Collections.Generic.HashSet()
 
   pixels.Add((x,y)) |> ignore
-  pixelsVisited.Add((x,y)) |> ignore
   let mutable i = 0
   while i < pixels.Count do
     let x, y = pixels.[i] 
@@ -188,8 +186,7 @@ let fill x y width (arr:uint8 []) r g b =
       arr.[pos + 3] <- 255uy
       for x' in -1 .. 1 do
         for y' in -1 .. 1 do
-          if pixelsVisited.Add((x + x', y + y')) then
-            pixels.Add((x + x', y + y'))
+          pixels.Add((x + x', y + y'))
   pixels.Clear ()
       
 
