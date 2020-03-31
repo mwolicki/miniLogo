@@ -203,12 +203,16 @@ let fill x y width (arr:uint8 []) r g b =
       arr.[pos + 2] <- b
       arr.[pos + 3] <- 255uy
 
-      for x' in -1 .. 1 do
-        let x' = x + x'
-        for y' in -1 .. 1 do
-          let y' = y + y'
-          if x' <> x || y' <> y then pixels.Enqueue((x', y'))
+      pixels.Enqueue((x + 1, y))
+      pixels.Enqueue((x - 1, y))
+
+      pixels.Enqueue((x + 1, y + 1))
+      pixels.Enqueue((x, y + 1))
+      pixels.Enqueue((x - 1, y + 1))
       
+      pixels.Enqueue((x + 1, y - 1))
+      pixels.Enqueue((x, y - 1))
+      pixels.Enqueue((x - 1, y - 1))
 
 
 let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
