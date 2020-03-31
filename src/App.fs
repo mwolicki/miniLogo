@@ -372,8 +372,6 @@ module P =
       pStr "PW" .=> pWhitespace =>. pNum ==> Right
       pStr "LEWO" .=> pWhitespace =>. pNum ==> Left
       pStr "LW" .=> pWhitespace =>. pNum ==> Left
-      pStr "CZYŚĆ" --> CleanScreen
-      pStr "CZ" --> CleanScreen
       pStr "POWTÓRZ" .=> pWhitespace1 =>. pNum .=> pWhitespace .=>  pChar '[' .=> pWhitespace .=>. pAll (pExpr .=> pWhitespace) .=> pChar ']' ==> Loop 
       pStr "PODNIEŚ" --> PenUp
       pStr "POD" --> PenUp
@@ -384,6 +382,8 @@ module P =
       pStr "SCHOWAJMNIE" --> HideTurtle
       pStr "SŻ" --> HideTurtle
       pStr "CZEKAJ" .=> pWhitespace1 =>. pNum ==> Sleep
+      pStr "CZYŚĆ" --> CleanScreen
+      pStr "CZ" --> CleanScreen
       pStr "KOŁO" .=> pWhitespace1 =>. pNum ==> Disk
       pStr "OKRĄG" .=> pWhitespace1 =>. pNum ==> Circle
       pStr "USTALGRUBOŚĆ" .=> pWhitespace1 =>. pNum ==> PenSize
