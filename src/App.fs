@@ -242,11 +242,11 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
               do! Async.Sleep (int sleep)
               return env }
           | ColorFill -> 
-            ctx.stroke()
-            let id = ctx.getImageData(0., 0.,  myCanvas.width,  myCanvas.height)
-            let (r,g,b) = env.BackgroudColor.Rgb
-            fill (int env.X) (int env.Y) (int id.width) id.data r g b
-            ctx.putImageData (id, 0., 0.)
+            drawContext ctx env (fun ctx ->
+              let id = ctx.getImageData(0., 0.,  myCanvas.width,  myCanvas.height)
+              let (r,g,b) = env.BackgroudColor.Rgb
+              fill (int env.X) (int env.Y) (int id.width) id.data r g b
+              ctx.putImageData (id, 0., 0.))
             env  |> Async.Singleton
           | ProcedureCall (name, args) -> 
             
