@@ -79,6 +79,7 @@ type NumberExpr =
 | Num of uint16
 | Add of NumberExpr * NumberExpr
 | Sub of NumberExpr * NumberExpr
+| Variable of variable:string
 
 
 type Color = Green | Black | Blue | Yellow | Gray | Red | White
@@ -112,15 +113,26 @@ type Expr =
 and ProcedureDef = { Name:string; Args:string list; Code:Expr list }
 
 type PenState = Up | Down | Erase
-type Env = { X : float; Y : float; Pen : PenState; IsVisible : bool; Procedures : Map<string, ProcedureDef>; Angle : int16; BackgroudColor : Color; PenColor : Color; PenSize : uint16 }
-let empty = { X = 0.; Y = 0.; Pen = Down; IsVisible = true; Procedures = Map.empty; Angle = 180s; BackgroudColor = White; PenColor = Black; PenSize = 2us }
+type Env = { X : float; Y : float; Pen : PenState; IsVisible : bool; Procedures : Map<string, ProcedureDef>; Angle : int16; BackgroudColor : Color; PenColor : Color; PenSize : uint16; Variables : Map<string, NumberExpr> }
+let empty = { X = 0.; Y = 0.; Pen = Down; IsVisible = true; Procedures = Map.empty; Angle = 180s; BackgroudColor = White; PenColor = Black; PenSize = 2us; Variables = Map.empty }
 
-let rec numExpr = function
-  | Add (a, b) -> (numExpr a) + (numExpr b)
-  | Sub (a, b) -> (numExpr a) - (numExpr b)
+let rec numExpr env = function
+  | Add (a, b) -> (numExpr env a) + (numExpr env b)
+  | Sub (a, b) -> (numExpr env a) - (numExpr env b)
   | Num a -> a
+  | Variable name ->
+    match Map.tryFind name env with
+    | Some x -> numExpr env x
+    | None -> failwithf "Undefined variable '%A' in %A" name env
 
-let (|Num|) = numExpr
+let rec numExprEval env = function
+  | Add (a, b) -> Add(numExprEval env a, numExprEval env  b)
+  | Sub (a, b) -> Sub(numExprEval env a, numExprEval env b)
+  | Num a -> Num a
+  | Variable name ->
+    match Map.tryFind name env with
+    | Some x -> numExpr env x |> Num
+    | None -> Variable name
 
 open System
 
@@ -171,7 +183,7 @@ let fill x y width (arr:uint8 []) r g b =
     let pos = pos x y
     i <- i + 1
     if pos > arr.Length then ()
-    elif arr.[pos] = r' && arr.[pos + 1] = g' && arr.[pos + 2] = b' && arr.[pos + 3] = a' then
+    elif arr.[pos] = r' && arr.[pos + 1] = g' && arr.[pos + 2] = b' && arr.[pos + 3] = a' || arr.[pos + 3]  = 0uy then
       arr.[pos] <- r
       arr.[pos + 1] <- g
       arr.[pos + 2] <- b
@@ -190,12 +202,14 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
 
   
   let rec exec (env:Env) xs = async {
+    let (|Num|) = numExpr env.Variables
     match xs with 
     | [] -> 
       ctx.stroke()
       ctx.closePath()
       return env
     | x::xs -> 
+        printfn "%A" x
         let! env= 
           match x with
           | BackgroudColor color -> { env with BackgroudColor = color } |> Async.Singleton
@@ -217,8 +231,15 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
             let id = ctx.getImageData(0., 0.,  myCanvas.width,  myCanvas.height)
             fill (int env.X) (int env.Y) (int id.width) id.data 255uy 0uy 0uy
             ctx.putImageData (id, 0., 0.)
-            env  |> Async.Singleton//TODO: impl
-          | ProcedureCall (name, args) -> env  |> Async.Singleton//TODO: impl
+            env  |> Async.Singleton
+          | ProcedureCall (name, args) -> 
+            
+            match Map.tryFind name env.Procedures with
+            | Some x when x.Args.Length = args.Length -> 
+              let variables = List.zip x.Args args |> List.fold (fun acc (key, expr) -> Map.add key (numExprEval env.Variables expr) acc) env.Variables
+              exec { env with Variables = variables} x.Code
+            | Some x -> failwithf "Wrong number of args for %s. Was %A, exected %A" name args x.Args
+            | None -> failwithf "Unknown function %s" name
           | Circle (Num radius) ->
             drawContext ctx env (fun ctx ->
               ctx.arc (float env.X, float env.Y, float radius, 0., 2. * Math.PI)
@@ -307,7 +328,8 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
 module P =
   open Parser
 
-  let pUint16 = pUint16 ==> Num
+
+  let pProcedureNameCall : string Parse = pRegEx "\w+" >> Result.bind(function ("JUŻ", _) -> Error "JUŻ is special keyword" | x -> Ok x)
 
   let pColor = 
     pChar '"' =>. pAny [
@@ -319,17 +341,21 @@ module P =
       pStr "BIAŁY" --> White
       pStr "CZERWONY" --> Red ]
 
+  let pNum : NumberExpr Parse = 
+    let pUint16 = pUint16 ==> Num
+    pAny [pUint16; (pChar '"' =>. pRegEx "\w+" ==> Variable)]
+
   let pExpr = 
     let pExpr, pExprSetter = pRef ()
     pAny [
-      pStr "NAPRZÓD" .=> pWhitespace =>. pUint16 ==> Forward
-      pStr "NP" .=> pWhitespace =>. pUint16 ==> Forward
-      pStr "PRAWO" .=> pWhitespace =>. pUint16 ==> Right
-      pStr "PW" .=> pWhitespace =>. pUint16 ==> Right
-      pStr "LEWO" .=> pWhitespace =>. pUint16 ==> Left
-      pStr "LW" .=> pWhitespace =>. pUint16 ==> Left
+      pStr "NAPRZÓD" .=> pWhitespace =>. pNum ==> Forward
+      pStr "NP" .=> pWhitespace =>. pNum ==> Forward
+      pStr "PRAWO" .=> pWhitespace =>. pNum ==> Right
+      pStr "PW" .=> pWhitespace =>. pNum ==> Right
+      pStr "LEWO" .=> pWhitespace =>. pNum ==> Left
+      pStr "LW" .=> pWhitespace =>. pNum ==> Left
       pStr "CS" --> CleanScreen
-      pStr "POWTÓRZ" .=> pWhitespace1 =>. pUint16 .=> pWhitespace .=>  pChar '[' .=> pWhitespace .=>. pAll (pExpr .=> pWhitespace) .=> pChar ']' ==> Loop 
+      pStr "POWTÓRZ" .=> pWhitespace1 =>. pNum .=> pWhitespace .=>  pChar '[' .=> pWhitespace .=>. pAll (pExpr .=> pWhitespace) .=> pChar ']' ==> Loop 
       pStr "PODNIEŚ" --> PenUp
       pStr "POD" --> PenUp
       pStr "OPUŚĆ" --> PenDown
@@ -338,18 +364,21 @@ module P =
       pStr "PŻ" --> ShowTurtle
       pStr "SCHOWAJMNIE" --> HideTurtle
       pStr "SŻ" --> HideTurtle
-      pStr "CZEKAJ" .=> pWhitespace1 =>. pUint16 ==> Sleep
-      pStr "KOŁO" .=> pWhitespace1 =>. pUint16 ==> Disk
-      pStr "OKRĄG" .=> pWhitespace1 =>. pUint16 ==> Circle
-      pStr "USTALGRUBOŚĆ" .=> pWhitespace1 =>. pUint16 ==> PenSize
-      pStr "UGP" .=> pWhitespace1 =>. pUint16 ==> PenSize
+      pStr "CZEKAJ" .=> pWhitespace1 =>. pNum ==> Sleep
+      pStr "KOŁO" .=> pWhitespace1 =>. pNum ==> Disk
+      pStr "OKRĄG" .=> pWhitespace1 =>. pNum ==> Circle
+      pStr "USTALGRUBOŚĆ" .=> pWhitespace1 =>. pNum ==> PenSize
+      pStr "UGP" .=> pWhitespace1 =>. pNum ==> PenSize
       pStr "USTALKOLPIS" .=> pWhitespace1 =>. pColor ==> PenColor
       pStr "UKP" .=> pWhitespace1 =>. pColor ==> PenColor
       pStr "USTALKOLMAL" .=> pWhitespace1 =>. pColor ==> BackgroudColor
       pStr "UKM" .=> pWhitespace1 =>. pColor ==> BackgroudColor
       pStr "ZAMALUJ" --> ColorFill
+      
       pStr "OTO" .=> pWhitespace1 =>. pRegEx "\w+" .=> pWhitespace1 .=>.  pAll (pChar ':' =>. pRegEx "\w+" .=> pWhitespace) .=>. pAll (pExpr .=> pWhitespace) .=> pStr "JUŻ" 
         ==> fun ((name, args), code) -> {Name = name; Args = args; Code = code } |> Procedure
+      //needs to be the last one
+      pProcedureNameCall .=> pWhitespace1 .=>. pAll (pNum .=> pWhitespace) ==> ProcedureCall
       ] |> pExprSetter
 
     pExpr
