@@ -374,7 +374,7 @@ module P =
       pStr "UKM" .=> pWhitespace1 =>. pColor ==> BackgroudColor
       pStr "ZAMALUJ" --> ColorFill
       
-      pStr "OTO" .=> pWhitespace1 =>. pRegEx "\w+" .=> pWhitespace1 .=>.  pAll (pChar ':' =>. pRegEx "\w+" .=> pWhitespace) .=>. pAll (pExpr .=> pWhitespace) .=> pStr "JUŻ" 
+      pStr "OTO" .=> pWhitespace1 =>. pRegEx "\w+" .=> pWhitespace .=>.  pAll (pChar ':' =>. pRegEx "\w+" .=> pWhitespace) .=>. pAll (pExpr .=> pWhitespace) .=> pStr "JUŻ" 
         ==> fun ((name, args), code) -> {Name = name; Args = args; Code = code } |> Procedure
       //needs to be the last one
       pProcedureNameCall .=> pWhitespace1 .=>. pAll (pNum .=> pWhitespace) ==> ProcedureCall
