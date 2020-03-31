@@ -55,8 +55,6 @@ myCanvasBuffer.height <- h * ratio
 myCanvasBuffer?style?height <- sprintf "%dpx" (int h)
 myCanvasBuffer?style?width <- sprintf "%dpx" (int w)
 
-// print the grid size to our debugger console
-printfn "%i" steps
 
 // prepare our canvas operations
 [0..steps] // this is a list
@@ -139,7 +137,7 @@ open System
 let radConv = Math.PI / 180.
 
 let drawTurtle env =
-    let ctx = myCanvasBuffer.getContext_2d()
+    let ctx = myCanvas.getContext_2d()
     let image:Browser.Types.HTMLImageElement = window?turtleImage
     
     myCanvasBufferImage.width <- 32.
@@ -152,7 +150,7 @@ let drawTurtle env =
     imgCtx.rotate (float (180s-env.Angle) * radConv)
     imgCtx.drawImage(U3.Case1 image,-16.,-16.,32., 32.)
     imgCtx.restore()
-    ctx.drawImage(U3.Case2 myCanvasBufferImage, env.X - 16.,env.Y - 16., 32., 32.)
+    ctx.drawImage(U3.Case2 myCanvasBufferImage, env.X / ratio - 16., env.Y / ratio - 16., 32., 32.)
 
 let inline drawContext (ctx:Browser.Types.CanvasRenderingContext2D) env  f =
     ctx.beginPath ()
@@ -209,18 +207,19 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
       ctx.closePath()
       return env
     | x::xs -> 
-        printfn "%A" x
         let! env= 
           match x with
           | BackgroudColor color -> { env with BackgroudColor = color } |> Async.Singleton
           | PenColor color -> { env with PenColor = color }  |> Async.Singleton
           | PenSize (Num size) -> { env with PenSize = size }  |> Async.Singleton
           | Sleep (Num sleep) -> 
-            if env.IsVisible then drawTurtle env
+            
 
             let mainCtx = myCanvas.getContext_2d()
 
             mainCtx.clearRect(0., 0., myCanvas.width, myCanvas.height)
+
+            if env.IsVisible then drawTurtle env
             
             mainCtx.drawImage(U3.Case2 myCanvasBuffer, 0., 0., w * ratio, h  * ratio,  0., 0., w, h)
             async {
@@ -241,11 +240,13 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
             | Some x -> failwithf "Wrong number of args for %s. Was %A, exected %A" name args x.Args
             | None -> failwithf "Unknown function %s" name
           | Circle (Num radius) ->
+            let radius = float radius * ratio
             drawContext ctx env (fun ctx ->
               ctx.arc (float env.X, float env.Y, float radius, 0., 2. * Math.PI)
               ctx.moveTo(float env.X, float env.Y))
             env |> Async.Singleton
           | Disk (Num radius) ->
+            let radius = float radius * ratio
             drawContext ctx env (fun ctx ->
               ctx.arc (float env.X, float env.Y, float radius, 0., 2. * Math.PI)
               ctx.fillStyle <- U3.Case1 env.BackgroudColor.Name
@@ -268,7 +269,7 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
           | Left (Num angle) -> { env with Angle = (env.Angle + int16 angle) % 360s } |> Async.Singleton
           | Right (Num angle) -> { env with Angle = (env.Angle - int16 angle) % 360s } |> Async.Singleton
           | Back (Num steps) -> 
-            let steps = float steps
+            let steps = float steps * ratio
             let angleRadian = radConv * float env.Angle
             let moveY  = steps * (cos angleRadian)
             let moveX  = steps * (sin angleRadian)
@@ -284,7 +285,7 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
             { env with X = x; Y = y } |> Async.Singleton
 
           | Forward (Num steps) -> 
-            let steps = float steps
+            let steps = float steps * ratio
             let angleRadian = radConv * float env.Angle
             let moveY  = steps * (cos angleRadian)
             let moveX  = steps * (sin angleRadian)
@@ -312,13 +313,12 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
         myButton.disabled <- true
         let! env = exec empty (CleanScreen :: expr)
 
-        if env.IsVisible then drawTurtle env
-
         let mainCtx = myCanvas.getContext_2d()
 
         mainCtx.clearRect(0., 0., myCanvas.width, myCanvas.height)
         
         mainCtx.drawImage(U3.Case2 myCanvasBuffer, 0., 0., w * ratio, h  * ratio,  0., 0., w, h)
+        if env.IsVisible then drawTurtle env
       finally
         myButton.disabled <- false
     with e ->
