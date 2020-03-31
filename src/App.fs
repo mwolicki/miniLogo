@@ -219,9 +219,8 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
 
             mainCtx.clearRect(0., 0., myCanvas.width, myCanvas.height)
 
-            if env.IsVisible then drawTurtle env
-            
             mainCtx.drawImage(U3.Case2 myCanvasBuffer, 0., 0., w * ratio, h  * ratio,  0., 0., w, h)
+            if env.IsVisible then drawTurtle env
             async {
               do! Async.Sleep (int sleep)
               return env }
