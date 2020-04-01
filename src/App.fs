@@ -164,20 +164,23 @@ let inline drawContext (ctx:Browser.Types.CanvasRenderingContext2D) env  f =
     ctx.stroke ()
     ctx.closePath ()
 
-type Stack = { arr : (int*int) ResizeArray }
+type Stack = { arr : (int*int) ResizeArray; mutable count : int }
 with 
-  member a.IsEmpty () = a.arr.Count = 0
+  member a.IsEmpty () = a.count = 0
   member a.Dequeue () =
-    let count = a.arr.Count
-    if count > 0 then
-      let x = a.arr.[count - 1]
-      a.arr.RemoveAt (count - 1)
-      x
+    let index = a.count - 1
+    if index >= 0 then
+      a.count <- index
+      a.arr.[index]
     else failwithf "Queue is empty"
   member a.Enqueue value = 
-    a.arr.Add value |> ignore
+    if a.count = a.arr.Count then
+      a.arr.Add value |> ignore
+    else
+      a.arr.[a.count] <- value
+    a.count <- a.count + 1
       
-  static member empty = { arr = ResizeArray () }
+  static member empty = { arr = ResizeArray (); count = 0 }
 
 type Async<'a> =
   static member Singleton x = async { return x }
@@ -186,33 +189,35 @@ type Async<'a> =
 let fill x y width (arr:uint8 []) r g b =
   let pos x y = (y * width + x) * 4
   let r', g', b', a' = arr.[pos x y], arr.[pos x y + 1], arr.[pos x y + 2], arr.[pos x y + 3]
-  let pixels = Stack.empty
-  
-  pixels.Enqueue((x,y)) |> ignore
-  
-  while pixels.IsEmpty () |> not do
-    let x, y = pixels.Dequeue ()
 
-    let pos = pos x y
-    if pos > arr.Length || pos < 0 then ()
-    elif arr.[pos] = r && arr.[pos + 1] = g && arr.[pos + 2] = b && arr.[pos + 3] = 255uy then ()
-    elif (arr.[pos] = r' && arr.[pos + 1] = g' && arr.[pos + 2] = b' && arr.[pos + 3] = a')
-      || abs(int arr.[pos] - int r') + abs(int arr.[pos + 1] - int g') + abs(int arr.[pos + 2] - int b') + abs(int arr.[pos + 3] - int a') < 75 then
-      arr.[pos] <- r
-      arr.[pos + 1] <- g
-      arr.[pos + 2] <- b
-      arr.[pos + 3] <- 255uy
+  if r <> r' || g <> g' || b <> b' then
 
-      pixels.Enqueue((x + 1, y))
-      pixels.Enqueue((x - 1, y))
+    let pixels = Stack.empty
+    
+    pixels.Enqueue((x,y)) |> ignore
+    
+    while pixels.IsEmpty () |> not do
+      let x, y = pixels.Dequeue ()
 
-      pixels.Enqueue((x + 1, y + 1))
-      pixels.Enqueue((x, y + 1))
-      pixels.Enqueue((x - 1, y + 1))
-      
-      pixels.Enqueue((x + 1, y - 1))
-      pixels.Enqueue((x, y - 1))
-      pixels.Enqueue((x - 1, y - 1))
+      let pos = pos x y
+      if pos > arr.Length || pos < 0 then ()
+      elif (arr.[pos] = r' && arr.[pos + 1] = g' && arr.[pos + 2] = b' && arr.[pos + 3] = a')
+        || (abs(int arr.[pos] - int r') < 25 && abs(int arr.[pos + 1] - int g') < 25 && abs(int arr.[pos + 2] - int b') < 25 && abs(int arr.[pos + 3] - int a') < 25) then
+        arr.[pos] <- r
+        arr.[pos + 1] <- g
+        arr.[pos + 2] <- b
+        arr.[pos + 3] <- 255uy
+
+        pixels.Enqueue((x + 1, y))
+        pixels.Enqueue((x - 1, y))
+
+        pixels.Enqueue((x + 1, y + 1))
+        pixels.Enqueue((x, y + 1))
+        pixels.Enqueue((x - 1, y + 1))
+        
+        pixels.Enqueue((x + 1, y - 1))
+        pixels.Enqueue((x, y - 1))
+        pixels.Enqueue((x - 1, y - 1))
 
 
 let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
@@ -332,7 +337,12 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
   async {
     try
       try
+        myButton.classList.add "btn-secondary"
         myButton.disabled <- true
+        myButton.classList.remove "btn-primary"
+        myButton.classList.remove "btn-success"
+        myButton.classList.remove "btn-danger"
+        
         let! env = exec empty (CleanScreen :: expr)
 
         let mainCtx = myCanvas.getContext_2d()
@@ -341,9 +351,12 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
         
         mainCtx.drawImage(U3.Case2 myCanvasBuffer, 0., 0., w * ratio, h  * ratio,  0., 0., w, h)
         if env.IsVisible then drawTurtle env
+        myButton.classList.add "btn-success"
       finally
+        myButton.classList.remove "btn-secondary"
         myButton.disabled <- false
     with e ->
+      myButton.classList.add "btn-danger"
       eprintfn "An exception %O occured when processing %A" e expr } |> Async.Start
   
 
