@@ -115,7 +115,7 @@ and ProcedureDef = { Name:string; Args:string list; Code:Expr list }
 
 type PenState = Up | Down | Erase
 type Env = { X : float; Y : float; Pen : PenState; IsVisible : bool; Procedures : Map<string, ProcedureDef>; Angle : int16; BackgroudColor : Color; PenColor : Color; PenSize : uint16; Variables : Map<string, NumberExpr> }
-let empty = { X = 0.; Y = 0.; Pen = Down; IsVisible = true; Procedures = Map.empty; Angle = 180s; BackgroudColor = White; PenColor = Black; PenSize = 2us; Variables = Map.empty }
+let empty = { X = 0.; Y = 0.; Pen = Down; IsVisible = true; Procedures = Map.empty; Angle = 180s; BackgroudColor = Blue; PenColor = Black; PenSize = 2us; Variables = Map.empty }
 
 let rec numExpr env = function
   | Add (a, b) -> (numExpr env a) + (numExpr env b)
@@ -164,7 +164,7 @@ let inline drawContext (ctx:Browser.Types.CanvasRenderingContext2D) env  f =
     ctx.stroke ()
     ctx.closePath ()
 
-type Stack = { arr : (int*int) ResizeArray; mutable count : int }
+type Stack = { arr : int ResizeArray; mutable count : int }
 with 
   member a.IsEmpty () = a.count = 0
   member a.Dequeue () =
@@ -190,16 +190,17 @@ let fill x y width (arr:uint8 []) r g b =
   let pos x y = (y * width + x) * 4
   let r', g', b', a' = arr.[pos x y], arr.[pos x y + 1], arr.[pos x y + 2], arr.[pos x y + 3]
 
-  if r <> r' || g <> g' || b <> b' then
+  let xMove = 4
+  let yMove = width * 4
 
+  if r <> r' || g <> g' || b <> b' then
+    let p = pos x y
     let pixels = Stack.empty
-    
-    pixels.Enqueue((x,y)) |> ignore
+    pixels.Enqueue p |> ignore
     
     while pixels.IsEmpty () |> not do
-      let x, y = pixels.Dequeue ()
+      let pos = pixels.Dequeue ()
 
-      let pos = pos x y
       if pos > arr.Length || pos < 0 then ()
       elif (arr.[pos] = r' && arr.[pos + 1] = g' && arr.[pos + 2] = b' && arr.[pos + 3] = a')
         || (abs(int arr.[pos] - int r') < 25 && abs(int arr.[pos + 1] - int g') < 25 && abs(int arr.[pos + 2] - int b') < 25 && abs(int arr.[pos + 3] - int a') < 25) then
@@ -208,16 +209,16 @@ let fill x y width (arr:uint8 []) r g b =
         arr.[pos + 2] <- b
         arr.[pos + 3] <- 255uy
 
-        pixels.Enqueue((x + 1, y))
-        pixels.Enqueue((x - 1, y))
+        pixels.Enqueue(pos + xMove)
+        pixels.Enqueue(pos - xMove)
 
-        pixels.Enqueue((x + 1, y + 1))
-        pixels.Enqueue((x, y + 1))
-        pixels.Enqueue((x - 1, y + 1))
+        pixels.Enqueue(pos + yMove + xMove)
+        pixels.Enqueue(pos + yMove)
+        pixels.Enqueue(pos + yMove - xMove)
         
-        pixels.Enqueue((x + 1, y - 1))
-        pixels.Enqueue((x, y - 1))
-        pixels.Enqueue((x - 1, y - 1))
+        pixels.Enqueue(pos - yMove + xMove)
+        pixels.Enqueue(pos - yMove)
+        pixels.Enqueue(pos - yMove - xMove)
 
 
 let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
