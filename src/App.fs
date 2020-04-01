@@ -195,7 +195,7 @@ let fill x y width height (arr:uint8 []) r g b =
   
   let yMove = width * 4
 
-  if (r <> r' || g <> g' || b <> b') && x > 0 && y > 0 then
+  if (r <> r' || g <> g' || b <> b') && x > 0 && y > 0  && x < height && y < width then
     let p = pos x y
     let pixels = Stack.empty
     pixels.Enqueue p |> ignore
