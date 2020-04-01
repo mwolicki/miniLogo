@@ -185,15 +185,17 @@ with
 type Async<'a> =
   static member Singleton x = async { return x }
 
+[<LiteralAttribute>]
+let xMove = 4
 
-let fill x y width (arr:uint8 []) r g b =
+let fill x y width height (arr:uint8 []) r g b =
   let pos x y = (y * width + x) * 4
   let r', g', b', a' = arr.[pos x y], arr.[pos x y + 1], arr.[pos x y + 2], arr.[pos x y + 3]
 
-  let xMove = 4
+  
   let yMove = width * 4
 
-  if r <> r' || g <> g' || b <> b' then
+  if (r <> r' || g <> g' || b <> b') && x > 0 && y > 0 then
     let p = pos x y
     let pixels = Stack.empty
     pixels.Enqueue p |> ignore
@@ -209,16 +211,23 @@ let fill x y width (arr:uint8 []) r g b =
         arr.[pos + 2] <- b
         arr.[pos + 3] <- 255uy
 
-        pixels.Enqueue(pos + xMove)
-        pixels.Enqueue(pos - xMove)
+        let x = (pos / 4) % width
 
-        pixels.Enqueue(pos + yMove + xMove)
-        pixels.Enqueue(pos + yMove)
-        pixels.Enqueue(pos + yMove - xMove)
-        
-        pixels.Enqueue(pos - yMove + xMove)
+        if x < height - 1 then
+          pixels.Enqueue(pos - yMove + xMove)
+          pixels.Enqueue(pos + xMove)
+          pixels.Enqueue(pos + yMove + xMove)
+
+        if x > 0 then
+          pixels.Enqueue(pos - xMove)
+          pixels.Enqueue(pos - yMove - xMove)
+          pixels.Enqueue(pos + yMove - xMove)
+          
+          
         pixels.Enqueue(pos - yMove)
-        pixels.Enqueue(pos - yMove - xMove)
+        pixels.Enqueue(pos + yMove)
+        
+
 
 
 let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
@@ -255,7 +264,7 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
             drawContext ctx env (fun ctx ->
               let id = ctx.getImageData(0., 0.,  myCanvas.width,  myCanvas.height)
               let (r,g,b) = env.BackgroudColor.Rgb
-              fill (int env.X) (int env.Y) (int id.width) id.data r g b
+              fill (int env.X) (int env.Y) (int id.width) (int id.height) id.data r g b
               ctx.putImageData (id, 0., 0.))
             env  |> Async.Singleton
           | ProcedureCall (name, args) -> 
