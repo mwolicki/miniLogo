@@ -23,8 +23,19 @@
   <script src="scheme.js"></script>
   <script src="closebrackets.js"></script>
   <script src="matchbrackets.js"></script>
+  <script type="text/javascript">
+    function copyUrl() {
+      var tempInput = document.createElement("input")
+    tempInput.style = "position: absolute; left: -1000px; top: -1000px"
+    tempInput.value = location.href
+    document.body.appendChild(tempInput)
+    tempInput.select()
+    document.execCommand("copy")
+    document.body.removeChild(tempInput)
+    }
+  </script>
 </head>
-
+<input type="text" value="Hello World" id="myInput" style="display:none">
 <body class="bg-light">
   <main role="main" class="container">
     <div class="container">
@@ -52,6 +63,7 @@
             </div>
             <textarea id="code" rows="20" cols="20" class="form-control"></textarea>
             <div class="float-right">
+              <input type="button" value="Skopiuj rozwiązanie" class="btn btn-info" onclick="copyUrl()"></button>
               <input type="button" id="go" value="Uruchom" class="btn btn-primary"></button>
             </div>
         </div>
@@ -69,7 +81,7 @@
           <h5 class="mb-0">
             <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseOne"
               aria-expanded="false" aria-controls="collapseOne">
-              Lista procedur
+              Lista komend
             </button>
           </h5>
         </div>
@@ -182,10 +194,6 @@
       matchBrackets: true
     });
   </script>
-
-
-  <script src="bundle.js"></script>
-
   <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
     integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
     crossorigin="anonymous"></script>
@@ -195,7 +203,7 @@
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
     integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
     crossorigin="anonymous"></script>
-
+  <textarea id="paste-box" style="display: none"></textarea>
 </body>
 
 </html>
