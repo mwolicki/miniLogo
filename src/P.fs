@@ -77,5 +77,5 @@ let pExpr =
 
     pExpr
 
-let parse txt = (pWhitespace =>. pAll (pExpr .=> pWhitespace) .=> pEod) (txt + "\n")
+let parse (txt:string) = (pWhitespace =>. pAll (pExpr .=> pWhitespace) .=> pEod) (txt.ToUpper () + "\n")
 

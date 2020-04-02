@@ -327,7 +327,7 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
 
 
 myButton.addEventListener("click", fun _ -> 
-  let sourceCode = window?editor?getValue() |> fun (x:string) -> x.ToUpper ()
+  let sourceCode = window?editor?getValue()
   window.location.hash <- LZMA.compressToBase64 sourceCode
   let r = P.parse sourceCode
   printfn "result = %A" r
