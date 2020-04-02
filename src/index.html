@@ -28,6 +28,7 @@
 <body class="bg-light">
   <main role="main" class="container">
     <div class="container">
+      
       <div class="row">
         <div class="col-lg float-right">
           <blockquote class=" text-right small">
@@ -45,26 +46,22 @@
       <div class="row">
 
         <div class="col-lg">
-          <form>
-            <textarea id="code" rows="20" cols="20" class="form-control">
-OTO KWADRAT
-  POWTÓRZ 4 [NP 100 PW 90]
-JUŻ
-KWADRAT
-</textarea>
+            <div id="interpretation-error" class="alert alert-danger" role="alert" style="display: none;">
+              <img src="turtle.png"/>
+              Nie zrozumiałem Twojego polecenia!
+            </div>
+            <textarea id="code" rows="20" cols="20" class="form-control"></textarea>
             <div class="float-right">
               <input type="button" id="go" value="Uruchom" class="btn btn-primary"></button>
             </div>
-          </form>
         </div>
         <div class="col-sm">
           <canvas id="myCanvas" width="400" height="400"></canvas>
 
         </div>
       </div>
+      
     </div>
-
-    <pre id="results"></pre>
 
     <div class="accordion" id="accordionExample">
       <div class="card">

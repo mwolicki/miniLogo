@@ -24,7 +24,18 @@ let mutable myButton : Browser.Types.HTMLInputElement = unbox window.document.ge
 let mutable myResults : Browser.Types.HTMLPreElement = unbox window.document.getElementById "results"  // myCanvas is defined in public/index.html
 let myCanvasBuffer : Browser.Types.HTMLCanvasElement = unbox window.document.createElement "canvas"
 let myCanvasBufferImage : Browser.Types.HTMLCanvasElement = unbox window.document.createElement "canvas"
+let interpretationError : Browser.Types.HTMLDivElement = unbox window.document.getElementById "interpretation-error"
 
+let showError () = 
+  interpretationError?style?removeProperty "display"
+  myButton.classList.add "btn-danger"
+
+let hideError () = 
+  interpretationError?style?setProperty ("display", "none")
+  myButton.classList.add "btn-secondary"
+  myButton.classList.remove "btn-primary"
+  myButton.classList.remove "btn-success"
+  myButton.classList.remove "btn-danger"
 
 // Get the context
 let ctx = myCanvas.getContext_2d()
@@ -56,22 +67,6 @@ myCanvasBuffer?style?height <- sprintf "%dpx" (int h)
 myCanvasBuffer?style?width <- sprintf "%dpx" (int w)
 
 
-// prepare our canvas operations
-[0..steps] // this is a list
-  |> Seq.iter( fun x -> // we iter through the list using an anonymous function
-      let v = float ((x) * squareSize) 
-      ctx.moveTo(v, 0.)
-      ctx.lineTo(v, gridWidth)
-      ctx.moveTo(0., v)
-      ctx.lineTo(gridWidth, v)
-    ) 
-ctx.strokeStyle <- !^"#ddd" // color
-
-// draw our grid
-ctx.stroke() 
-
-// write Fable
-ctx.textAlign <- "center"
 
 type NumberExpr =
 | Num of uint16
@@ -92,6 +87,7 @@ with
 
 type Expr = 
 | PenUp
+| Comment of string
 | PenDown
 | PenErase
 | HideTurtle
@@ -260,6 +256,9 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
             async {
               do! Async.Sleep (int sleep)
               return env }
+          | Comment s -> 
+            printfn "comment: %s" s
+            Async.Singleton env
           | ColorFill -> 
             drawContext ctx env (fun ctx ->
               let id = ctx.getImageData(0., 0.,  myCanvas.width,  myCanvas.height)
@@ -347,11 +346,8 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
   async {
     try
       try
-        myButton.classList.add "btn-secondary"
+        hideError()
         myButton.disabled <- true
-        myButton.classList.remove "btn-primary"
-        myButton.classList.remove "btn-success"
-        myButton.classList.remove "btn-danger"
         
         let! env = exec empty (CleanScreen :: expr)
 
@@ -366,7 +362,8 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
         myButton.classList.remove "btn-secondary"
         myButton.disabled <- false
     with e ->
-      myButton.classList.add "btn-danger"
+      showError ()
+      
       eprintfn "An exception %O occured when processing %A" e expr } |> Async.Start
   
 
@@ -387,8 +384,26 @@ module P =
       pStr "CZERWONY" --> Red ]
 
   let pNum : NumberExpr Parse = 
+    
+    let pExpr, pExprSetter = pRef ()
     let pUint16 = pUint16 ==> Num
-    pAny [pUint16; (pChar '"' =>. pRegEx "\w+" ==> Variable)]
+    let pBracket = pChar '(' =>. pWhitespace =>. pExpr .=> pWhitespace .=> pChar ')'
+    let pVar = pChar '"' =>. pRegEx "\w+" ==> Variable
+
+
+    pAny [
+      pUint16 .=> pWhitespace .=> pChar '+' .=> pWhitespace .=>. pExpr ==> Add
+      pUint16 .=> pWhitespace .=> pChar '-' .=> pWhitespace .=>. pExpr ==> Sub
+      pVar .=> pWhitespace .=> pChar '+' .=> pWhitespace .=>. pExpr ==> Add
+      pVar .=> pWhitespace .=> pChar '-' .=> pWhitespace .=>. pExpr ==> Sub
+      pBracket .=> pWhitespace .=> pChar '+' .=> pWhitespace .=>. pExpr ==> Add
+      pBracket .=> pWhitespace .=> pChar '-' .=> pWhitespace .=>. pExpr ==> Sub
+      pBracket
+      pUint16
+      pVar
+      ] |> pExprSetter
+
+    pExpr
 
   let pExpr = 
     let pExpr, pExprSetter = pRef ()
@@ -425,11 +440,12 @@ module P =
         ==> fun ((name, args), code) -> {Name = name; Args = args; Code = code } |> Procedure
       //needs to be the last one
       pProcedureNameCall .=> pWhitespace1 .=>. pAll (pNum .=> pWhitespace) ==> ProcedureCall
+      pRegEx ";.*\n" ==> Comment
       ] |> pExprSetter
 
     pExpr
 
-  let parse = pWhitespace =>. pAll (pExpr .=> pWhitespace) .=> pEod
+  let parse txt = (pWhitespace =>. pAll (pExpr .=> pWhitespace) .=> pEod) (txt + "\n")
 
 
 
@@ -438,7 +454,9 @@ myButton.addEventListener("click", fun _ ->
   window.location.hash <- LZMA.compressToBase64 sourceCode
   let r = P.parse sourceCode
   printfn "result = %A" r
-  r |> Result.map (fst>>exec myCanvas) |> ignore)
+  match r with
+  | Error _ -> showError ()
+  | Ok (r, _) -> exec myCanvas r |> ignore)
 
 let windHash = window.location.hash
 if isNull windHash |> not && windHash.Length > 1 then
@@ -446,4 +464,7 @@ if isNull windHash |> not && windHash.Length > 1 then
   let code = LZMA.decompressFromBase64 code
   printf "%A" code
   window?editor?setValue code
-  P.parse code |> Result.map (fst>>exec myCanvas) |> ignore
+
+  match P.parse code with
+  | Error _ -> showError ()
+  | Ok (r, _) -> exec myCanvas r |> ignore
