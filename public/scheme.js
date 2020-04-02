@@ -26,7 +26,7 @@ CodeMirror.defineMode("scheme", function () {
         return obj;
     }
 
-    var keywords = makeKeywords("POD OPU ŚĆIER PŻ SŻ CS NP PW LW POWTÓRZ OTO JUŻ");
+    var keywords = makeKeywords("NAPRZÓD NP PRAWO PW LEWO LW POWTÓRZ PODNIEŚ POD OPUŚĆ OPU POKAŻMNIE PŻ SCHOWAJMNIE SŻ CZEKAJ CZYŚĆ CZ KOŁO OKRĄG USTALGRUBOŚĆ UGP USTALKOLPIS UKP USTALKOLMAL UKM ZAMALUJ OTO JUŻ naprzód np prawo pw lewo lw powtórz podnieś pod opuść opu pokażmnie pż schowajmnie sż czekaj czyść cz koło okrąg ustalgrubość ugp ustalkolpis ukp ustalkolmal ukm zamaluj oto już");
     var indentKeys = makeKeywords("POWTÓRZ");
 
     function stateStack(indent, type, prev) { // represents a state stack object
