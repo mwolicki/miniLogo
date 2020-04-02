@@ -2,6 +2,7 @@ module App
 
 open Fable.Core.JsInterop
 open Fable.Import
+open Expr
 
 
 open Fable.Core
@@ -65,49 +66,6 @@ myCanvasBuffer.width <- w * ratio
 myCanvasBuffer.height <- h * ratio
 myCanvasBuffer?style?height <- sprintf "%dpx" (int h)
 myCanvasBuffer?style?width <- sprintf "%dpx" (int w)
-
-
-
-type NumberExpr =
-| Num of uint16
-| Add of NumberExpr * NumberExpr
-| Sub of NumberExpr * NumberExpr
-| Variable of variable:string
-
-
-type Color = Green | Black | Blue | Yellow | Gray | Red | White
-with 
-  member x.Rgb = 
-    match x with
-    | Green -> 0uy,255uy,0uy | Black -> 0uy,0uy,0uy |  Blue -> 0uy,0uy,255uy | Yellow -> 255uy,255uy,0uy  | Gray -> 220uy,220uy,220uy
-    | Red -> 255uy,0uy,0uy | White -> 255uy,255uy,255uy
-  member x.Name = 
-    let (r,g,b) = x.Rgb
-    sprintf "rgb(%d,%d,%d)" r g b
-
-type Expr = 
-| PenUp
-| Comment of string
-| PenDown
-| PenErase
-| HideTurtle
-| ShowTurtle
-| CleanScreen
-| ColorFill
-| Sleep of milisec : NumberExpr
-| ProcedureCall of name : string * NumberExpr list
-| BackgroudColor of name : Color
-| PenColor of name : Color
-| PenSize of size : NumberExpr
-| Disk of radius : NumberExpr
-| Circle of radius : NumberExpr
-| Forward of steps : NumberExpr
-| Back of steps : NumberExpr
-| Right of angle : NumberExpr
-| Left of angle : NumberExpr
-| Loop of NumberExpr * Expr list
-| Procedure of ProcedureDef
-and ProcedureDef = { Name:string; Args:string list; Code:Expr list }
 
 type PenState = Up | Down | Erase
 type Env = { X : float; Y : float; Pen : PenState; IsVisible : bool; Procedures : Map<string, ProcedureDef>; Angle : int16; BackgroudColor : Color; PenColor : Color; PenSize : uint16; Variables : Map<string, NumberExpr> }
@@ -366,87 +324,6 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
       
       eprintfn "An exception %O occured when processing %A" e expr } |> Async.Start
   
-
-module P =
-  open Parser
-
-
-  let pProcedureNameCall : string Parse = pRegEx "\w+" >> Result.bind(function ("JUŻ", _) -> Error "JUŻ is special keyword" | x -> Ok x)
-
-  let pColor = 
-    pChar '"' =>. pAny [
-      pStr "NIEBIESKI" --> Blue
-      pStr "ZIELONY" --> Green
-      pStr "SZARY" --> Gray
-      pStr "CZARNY" --> Black
-      pStr "ŻÓŁTY" --> Yellow
-      pStr "BIAŁY" --> White
-      pStr "CZERWONY" --> Red ]
-
-  let pNum : NumberExpr Parse = 
-    
-    let pExpr, pExprSetter = pRef ()
-    let pUint16 = pUint16 ==> Num
-    let pBracket = pChar '(' =>. pWhitespace =>. pExpr .=> pWhitespace .=> pChar ')'
-    let pVar = pChar '"' =>. pRegEx "\w+" ==> Variable
-
-
-    pAny [
-      pUint16 .=> pWhitespace .=> pChar '+' .=> pWhitespace .=>. pExpr ==> Add
-      pUint16 .=> pWhitespace .=> pChar '-' .=> pWhitespace .=>. pExpr ==> Sub
-      pVar .=> pWhitespace .=> pChar '+' .=> pWhitespace .=>. pExpr ==> Add
-      pVar .=> pWhitespace .=> pChar '-' .=> pWhitespace .=>. pExpr ==> Sub
-      pBracket .=> pWhitespace .=> pChar '+' .=> pWhitespace .=>. pExpr ==> Add
-      pBracket .=> pWhitespace .=> pChar '-' .=> pWhitespace .=>. pExpr ==> Sub
-      pBracket
-      pUint16
-      pVar
-      ] |> pExprSetter
-
-    pExpr
-
-  let pExpr = 
-    let pExpr, pExprSetter = pRef ()
-    pAny [
-      pStr "NAPRZÓD" .=> pWhitespace =>. pNum ==> Forward
-      pStr "NP" .=> pWhitespace =>. pNum ==> Forward
-      pStr "PRAWO" .=> pWhitespace =>. pNum ==> Right
-      pStr "PW" .=> pWhitespace =>. pNum ==> Right
-      pStr "LEWO" .=> pWhitespace =>. pNum ==> Left
-      pStr "LW" .=> pWhitespace =>. pNum ==> Left
-      pStr "POWTÓRZ" .=> pWhitespace1 =>. pNum .=> pWhitespace .=>  pChar '[' .=> pWhitespace .=>. pAll (pExpr .=> pWhitespace) .=> pChar ']' ==> Loop 
-      pStr "PODNIEŚ" --> PenUp
-      pStr "POD" --> PenUp
-      pStr "OPUŚĆ" --> PenDown
-      pStr "OPU" --> PenDown
-      pStr "POKAŻMNIE" --> ShowTurtle
-      pStr "PŻ" --> ShowTurtle
-      pStr "SCHOWAJMNIE" --> HideTurtle
-      pStr "SŻ" --> HideTurtle
-      pStr "CZEKAJ" .=> pWhitespace1 =>. pNum ==> Sleep
-      pStr "CZYŚĆ" --> CleanScreen
-      pStr "CZ" --> CleanScreen
-      pStr "KOŁO" .=> pWhitespace1 =>. pNum ==> Disk
-      pStr "OKRĄG" .=> pWhitespace1 =>. pNum ==> Circle
-      pStr "USTALGRUBOŚĆ" .=> pWhitespace1 =>. pNum ==> PenSize
-      pStr "UGP" .=> pWhitespace1 =>. pNum ==> PenSize
-      pStr "USTALKOLPIS" .=> pWhitespace1 =>. pColor ==> PenColor
-      pStr "UKP" .=> pWhitespace1 =>. pColor ==> PenColor
-      pStr "USTALKOLMAL" .=> pWhitespace1 =>. pColor ==> BackgroudColor
-      pStr "UKM" .=> pWhitespace1 =>. pColor ==> BackgroudColor
-      pStr "ZAMALUJ" --> ColorFill
-      
-      pStr "OTO" .=> pWhitespace1 =>. pRegEx "\w+" .=> pWhitespace1 .=>.  pAll (pChar ':' =>. pRegEx "\w+" .=> pWhitespace) .=>. pAll (pExpr .=> pWhitespace) .=> pStr "JUŻ" 
-        ==> fun ((name, args), code) -> {Name = name; Args = args; Code = code } |> Procedure
-      //needs to be the last one
-      pProcedureNameCall .=> pWhitespace1 .=>. pAll (pNum .=> pWhitespace) ==> ProcedureCall
-      pRegEx ";.*\n" ==> Comment
-      ] |> pExprSetter
-
-    pExpr
-
-  let parse txt = (pWhitespace =>. pAll (pExpr .=> pWhitespace) .=> pEod) (txt + "\n")
-
 
 
 myButton.addEventListener("click", fun _ -> 
