@@ -258,7 +258,7 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
             ctx.beginPath()
             ctx.moveTo(x, y)
             ctx.clearRect(0., 0., myCanvas.width, myCanvas.height)
-            { empty with X = x; Y = y } |> Async.Singleton
+            { empty with X = x; Y = y; Procedures = env.Procedures; Variables = env.Variables } |> Async.Singleton
           | Procedure p -> { env with Procedures = Map.add p.Name p env.Procedures } |> Async.Singleton
           | Left (Num angle) -> { env with Angle = (env.Angle + int16 angle) % 360s } |> Async.Singleton
           | Right (Num angle) -> { env with Angle = (env.Angle - int16 angle) % 360s } |> Async.Singleton
