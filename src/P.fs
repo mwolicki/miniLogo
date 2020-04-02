@@ -13,7 +13,10 @@ let pColor =
       pStr "CZARNY" --> Black
       pStr "ŻÓŁTY" --> Yellow
       pStr "BIAŁY" --> White
-      pStr "CZERWONY" --> Red ]
+      pStr "CZERWONY" --> Red
+      pStr "BRĄZOWY" --> Brown
+      pStr "FIOLETOWY" --> Violet
+      pStr "POMARAŃCZOWY" --> Orange ]
 
 let pNum : NumberExpr Parse = 
 

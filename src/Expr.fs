@@ -7,12 +7,12 @@ type NumberExpr =
 | Variable of variable:string
 
 
-type Color = Green | Black | Blue | Yellow | Gray | Red | White
+type Color = Green | Black | Blue | Yellow | Gray | Red | White | Brown | Violet | Orange
 with 
   member x.Rgb = 
     match x with
-    | Green -> 0uy,255uy,0uy | Black -> 0uy,0uy,0uy |  Blue -> 0uy,0uy,255uy | Yellow -> 255uy,255uy,0uy  | Gray -> 220uy,220uy,220uy
-    | Red -> 255uy,0uy,0uy | White -> 255uy,255uy,255uy
+    | Green -> 161uy,222uy,147uy | Black -> 0uy,0uy,0uy |  Blue -> 112uy,161uy,215uy | Yellow -> 247uy,244uy,139uy  | Gray -> 207uy,207uy,196uy
+    | Red -> 244uy,124uy,124uy | White -> 255uy,255uy,255uy | Brown -> 131uy,104uy,83uy | Violet -> 179uy,153uy,212uy | Orange -> 255uy,180uy,71uy
   member x.Name = 
     let (r,g,b) = x.Rgb
     sprintf "rgb(%d,%d,%d)" r g b
