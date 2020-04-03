@@ -22,17 +22,23 @@ let pNum : NumberExpr Parse =
 
     let pExpr, pExprSetter = pRef ()
     let pUint16 = pUint16 ==> Num
-    let pBracket = pChar '(' =>. pWhitespace =>. pExpr .=> pWhitespace .=> pChar ')'
+    let pBracket = pChar '(' =>. pWhitespace =>. pExpr .=> pWhitespace .=> pChar ')' ==> Group
     let pVar = pChar '"' =>. pRegEx "\w+" ==> Variable
 
 
     pAny [
       pUint16 .=> pWhitespace .=> pChar '+' .=> pWhitespace .=>. pExpr ==> Add
       pUint16 .=> pWhitespace .=> pChar '-' .=> pWhitespace .=>. pExpr ==> Sub
+      pUint16 .=> pWhitespace .=> pChar '/' .=> pWhitespace .=>. pExpr ==> Div
+      pUint16 .=> pWhitespace .=> pChar '*' .=> pWhitespace .=>. pExpr ==> Mul
       pVar .=> pWhitespace .=> pChar '+' .=> pWhitespace .=>. pExpr ==> Add
       pVar .=> pWhitespace .=> pChar '-' .=> pWhitespace .=>. pExpr ==> Sub
+      pVar .=> pWhitespace .=> pChar '/' .=> pWhitespace .=>. pExpr ==> Div
+      pVar .=> pWhitespace .=> pChar '*' .=> pWhitespace .=>. pExpr ==> Mul
       pBracket .=> pWhitespace .=> pChar '+' .=> pWhitespace .=>. pExpr ==> Add
       pBracket .=> pWhitespace .=> pChar '-' .=> pWhitespace .=>. pExpr ==> Sub
+      pBracket .=> pWhitespace .=> pChar '/' .=> pWhitespace .=>. pExpr ==> Div
+      pBracket .=> pWhitespace .=> pChar '*' .=> pWhitespace .=>. pExpr ==> Mul
       pBracket
       pUint16
       pVar
@@ -70,7 +76,7 @@ let pExpr =
       pStr "USTALKOLMAL" .=> pWhitespace1 =>. pColor ==> BackgroudColor
       pStr "UKM" .=> pWhitespace1 =>. pColor ==> BackgroudColor
       pStr "ZAMALUJ" --> ColorFill
-      
+      pStr "STOP" --> Stop
       pStr "OTO" .=> pWhitespace1 =>. pRegEx "\w+" .=> pWhitespace1 .=>.  pAll (pChar ':' =>. pRegEx "\w+" .=> pWhitespace) .=>. pAll (pExpr .=> pWhitespace) .=> pStr "JUŻ" 
         ==> fun ((name, args), code) -> {Name = name; Args = args; Code = code } |> Procedure
       //needs to be the last one

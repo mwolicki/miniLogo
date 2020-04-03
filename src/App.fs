@@ -69,12 +69,15 @@ myCanvasBuffer?style?width <- sprintf "%dpx" (int w)
 
 type PenState = Up | Down | Erase
 type Env = { X : float; Y : float; Pen : PenState; IsVisible : bool; Procedures : Map<string, ProcedureDef>; Angle : int16; BackgroudColor : Color; PenColor : Color; PenSize : uint16; Variables : Map<string, NumberExpr> }
-let empty = { X = 0.; Y = 0.; Pen = Down; IsVisible = true; Procedures = Map.empty; Angle = 180s; BackgroudColor = Blue; PenColor = Black; PenSize = 2us; Variables = Map.empty }
+let empty = { X = 0.; Y = 0.; Pen = Down; IsVisible = true; Procedures = Map.empty; Angle = 180s; BackgroudColor = Blue; PenColor = Black; PenSize = 3us; Variables = Map.empty }
 
 let rec numExpr env = function
   | Add (a, b) -> (numExpr env a) + (numExpr env b)
   | Sub (a, b) -> (numExpr env a) - (numExpr env b)
+  | Div (a, b) -> (numExpr env a) / (numExpr env b)
+  | Mul (a, b) -> (numExpr env a) * (numExpr env b)
   | Num a -> a
+  | Group a -> numExpr env a
   | Variable name ->
     match Map.tryFind name env with
     | Some x -> numExpr env x
@@ -83,6 +86,9 @@ let rec numExpr env = function
 let rec numExprEval env = function
   | Add (a, b) -> Add(numExprEval env a, numExprEval env  b)
   | Sub (a, b) -> Sub(numExprEval env a, numExprEval env b)
+  | Div (a, b) -> Div(numExprEval env a, numExprEval env  b)
+  | Mul (a, b) -> Mul(numExprEval env a, numExprEval env b)
+  | Group a -> Group(numExprEval env a)
   | Num a -> Num a
   | Variable name ->
     match Map.tryFind name env with
@@ -153,11 +159,12 @@ let fill x y width height (arr:uint8 []) r g b =
     let p = pos x y
     let pixels = Stack.empty
     pixels.Enqueue p |> ignore
-    
+
     while pixels.IsEmpty () |> not do
       let pos = pixels.Dequeue ()
 
-      if pos > arr.Length || pos < 0 then ()
+      if pos + 3 >= arr.Length || pos < 0 then ()
+      elif arr.[pos] = r && arr.[pos + 1] = g && arr.[pos + 2] = b && arr.[pos + 3] = 255uy then ()
       elif (arr.[pos] = r' && arr.[pos + 1] = g' && arr.[pos + 2] = b' && arr.[pos + 3] = a')
         || (abs(int arr.[pos] - int r') < 25 && abs(int arr.[pos + 1] - int g') < 25 && abs(int arr.[pos + 2] - int b') < 25 && abs(int arr.[pos + 3] - int a') < 25) then
         arr.[pos] <- r
@@ -196,15 +203,16 @@ let exec (myCanvas : Browser.Types.HTMLCanvasElement) (expr:Expr list) =
       ctx.stroke()
       ctx.closePath()
       return env
+    | Stop::_ -> return env
     | x::xs -> 
         let! env= 
           match x with
+          | Stop -> failwithf "Impossible state - 'STOP' should be already handled"
+          | If _ -> Async.Singleton env //todo: impl
           | BackgroudColor color -> { env with BackgroudColor = color } |> Async.Singleton
           | PenColor color -> { env with PenColor = color }  |> Async.Singleton
           | PenSize (Num size) -> { env with PenSize = size }  |> Async.Singleton
           | Sleep (Num sleep) -> 
-            
-
             let mainCtx = myCanvas.getContext_2d()
 
             mainCtx.clearRect(0., 0., myCanvas.width, myCanvas.height)

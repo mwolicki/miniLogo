@@ -4,8 +4,14 @@ type NumberExpr =
 | Num of uint16
 | Add of NumberExpr * NumberExpr
 | Sub of NumberExpr * NumberExpr
+| Mul of NumberExpr * NumberExpr
+| Div of NumberExpr * NumberExpr
+| Group of NumberExpr
 | Variable of variable:string
 
+type BoolExpr = 
+| BTrue
+| BFalse
 
 type Color = Green | Black | Blue | Yellow | Gray | Red | White | Brown | Violet | Orange
 with 
@@ -26,6 +32,8 @@ type Expr =
 | ShowTurtle
 | CleanScreen
 | ColorFill
+| Stop
+| If of BoolExpr * NumberExpr list
 | Sleep of milisec : NumberExpr
 | ProcedureCall of name : string * NumberExpr list
 | BackgroudColor of name : Color
