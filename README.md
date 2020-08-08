@@ -1,0 +1,8 @@
+# miniLogo
+
+In-browser, interpreter of a polish dialect of LOGO; supports sub-set of the language.
+
+Example programs:
+* https://mwolicki.github.io/miniLogo/#AoeQ6gKgywSgWgAgJwAYEG1SVogLBgOWGTQBkwSBdAKC2ngQEY10iSFgLVKFymVKQA==
+* https://mwolicki.github.io/miniLogo/#PYF2AIGNgZwKHOAqgZQCoEEAyBpA8lgLLbgBEAWgJICiWeAcgJoLj6CCgHuAIwAMPLABTwARFlgDq4AJw9w9AdwCssgZJks8ApILzi0AZYBK5cADZwAbXngATIvCrps63fASnAXTFrnC1464ADn5EIT0jE3MrP3tHGTkYtx8vRHcgkITbAHZFHVFQyS5lFmsuGwzUTFwCYiwyehoAIRoUHEoWcgxapAApb3AAFlzEa1MMuAArAFdAH0A4OGgYIA=
+* https://mwolicki.github.io/miniLogo/#NwBwTg9g5mCGC2ACAJgG1o+CCeBCAUAFoCCAssQDICqAUvgPIAq9iA0gOrEAiASsY/iqsACogBEhAJIBRCvQByATXzD67RgGWehRABZEAbXmiAjAAYziYe0QBOMwF18NKoG9AfB259GifAGFCaVZiGkRzC3xjMIiScmo6AKCQ6IiAwVZScUSedgVlVnpAQUAWcPTMiRk5JQ8ilgBWMxV6LkjRAAoAJgsAWhMASiIySlp8IA=
